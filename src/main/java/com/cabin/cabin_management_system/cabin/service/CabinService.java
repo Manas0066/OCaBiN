@@ -1,6 +1,7 @@
 package com.cabin.cabin_management_system.cabin.service;
 
 import com.cabin.cabin_management_system.cabin.dto.request.CabinRequest;
+import com.cabin.cabin_management_system.cabin.dto.request.UpdateCabinRequest;
 import com.cabin.cabin_management_system.cabin.dto.response.CabinResponse;
 import com.cabin.cabin_management_system.cabin.entity.Cabin;
 import com.cabin.cabin_management_system.cabin.repository.CabinRepository;
@@ -60,13 +61,87 @@ public class CabinService {
 
         return response;
     }
-    
+
     public CabinResponse getCabinById(Long id) {
 
         Cabin cabin = cabinRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Cabin not found."));
 
         return convertToCabinResponse(cabin);
+    }
+
+    public CabinResponse updateCabin(Long cabinId,
+                                     UpdateCabinRequest request) {
+
+        Cabin cabin = cabinRepository.findById(cabinId)
+                .orElseThrow(() ->
+                        new NoSuchElementException("Cabin not found."));
+
+        // Check duplicate cabin name
+        if (!cabin.getCabinName().equalsIgnoreCase(request.getCabinName())
+                && cabinRepository.existsByCabinName(request.getCabinName())) {
+
+            throw new IllegalArgumentException("Cabin name already exists.");
+        }
+
+        cabin.setCabinName(request.getCabinName());
+        cabin.setFloor(request.getFloor());
+        cabin.setCapacity(request.getCapacity());
+        cabin.setLocation(request.getLocation());
+        cabin.setAmenities(request.getAmenities());
+        cabin.setStatus(request.getStatus());
+        cabin.setActive(request.getActive());
+
+        cabin.setUpdatedAt(LocalDateTime.now());
+
+        Cabin savedCabin = cabinRepository.save(cabin);
+
+        return convertToCabinResponse(savedCabin);
+    }
+
+    public CabinResponse deactivateCabin(Long cabinId) {
+
+        Cabin cabin = cabinRepository.findById(cabinId)
+                .orElseThrow(() ->
+                        new NoSuchElementException("Cabin not found."));
+
+        if (!cabin.getActive()) {
+            throw new IllegalArgumentException("Cabin is already inactive.");
+        }
+
+        cabin.setActive(false);
+        cabin.setUpdatedAt(LocalDateTime.now());
+
+        Cabin savedCabin = cabinRepository.save(cabin);
+
+        return convertToCabinResponse(savedCabin);
+    }
+
+    public CabinResponse activateCabin(Long cabinId) {
+
+        Cabin cabin = cabinRepository.findById(cabinId)
+                .orElseThrow(() ->
+                        new NoSuchElementException("Cabin not found."));
+
+        if (cabin.getActive()) {
+            throw new IllegalArgumentException("Cabin is already active.");
+        }
+
+        cabin.setActive(true);
+        cabin.setUpdatedAt(LocalDateTime.now());
+
+        Cabin savedCabin = cabinRepository.save(cabin);
+
+        return convertToCabinResponse(savedCabin);
+    }
+
+    public List<CabinResponse> getAvailableCabins() {
+
+        return cabinRepository
+                .findByActiveTrueAndStatus(CabinStatus.AVAILABLE)
+                .stream()
+                .map(this::convertToCabinResponse)
+                .toList();
     }
 
     private CabinResponse convertToCabinResponse(Cabin cabin) {

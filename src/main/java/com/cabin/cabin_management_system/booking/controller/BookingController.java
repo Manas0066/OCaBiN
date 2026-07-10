@@ -112,4 +112,36 @@ public class BookingController {
                 )
         );
     }
+
+    @PutMapping("/{bookingId}/cancel")
+    public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
+            @PathVariable Long bookingId) {
+
+        BookingResponse response =
+                bookingService.cancelBooking(bookingId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Booking Cancelled Successfully",
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/{bookingId}")
+    public ResponseEntity<ApiResponse<BookingResponse>> getBookingById(
+            @PathVariable Long bookingId) {
+
+        BookingResponse response =
+                bookingService.getBookingById(bookingId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Booking fetched successfully.",
+                        response
+                )
+        );
+    }
 }

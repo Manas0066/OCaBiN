@@ -14,4 +14,10 @@ public interface CabinRepository extends JpaRepository<Cabin, Long> {
     Optional<Cabin> findByCabinName(String cabinName);
 
     List<Cabin> findByActiveTrueAndStatus(CabinStatus status);
+
+    long countByActiveTrue();
+
+    long countByActiveFalse();
+
+    long countByStatus(CabinStatus status);
 }

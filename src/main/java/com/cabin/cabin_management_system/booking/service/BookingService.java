@@ -9,6 +9,7 @@ import com.cabin.cabin_management_system.cabin.entity.Cabin;
 import com.cabin.cabin_management_system.cabin.repository.CabinRepository;
 import com.cabin.cabin_management_system.common.enums.BookingStatus;
 import com.cabin.cabin_management_system.common.enums.CabinStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -101,7 +102,7 @@ public class BookingService {
                 .map(this::convertToBookingResponse)
                 .toList();
     }
-    
+
     private BookingResponse updateBookingStatus(Long bookingId,
                                                 BookingStatus status) {
 
@@ -205,6 +206,63 @@ public class BookingService {
         }
     }
 
+    public BookingResponse cancelBooking(Long bookingId) {
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = (User) authentication.getPrincipal();
+
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() ->
+                        new NoSuchElementException("Booking not found."));
+
+        // Employee can cancel only his own booking
+        validateBookingOwnership(booking, currentUser);
+
+        // Only pending booking can be cancelled
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new IllegalArgumentException(
+                    "Only pending bookings can be cancelled.");
+        }
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setUpdatedAt(LocalDateTime.now());
+
+        Booking savedBooking = bookingRepository.save(booking);
+
+        return convertToBookingResponse(savedBooking);
+    }
+
+    private void validateBookingOwnership(Booking booking, User currentUser) {
+
+        if (!booking.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException(
+                    "You are not allowed to access this booking."
+            );
+        }
+    }
+
+    public BookingResponse getBookingById(Long bookingId) {
+
+        Booking booking = findBookingById(bookingId);
+
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        User currentUser = (User) authentication.getPrincipal();
+
+        boolean isAdminOrManager =
+                currentUser.getRole().name().equals("ADMIN")
+                        || currentUser.getRole().name().equals("MANAGER");
+
+        if (!isAdminOrManager) {
+            validateBookingOwnership(booking, currentUser);
+        }
+
+        return convertToBookingResponse(booking);
+    }
+    
     private BookingResponse convertToBookingResponse(Booking booking) {
 
         BookingResponse response = new BookingResponse();

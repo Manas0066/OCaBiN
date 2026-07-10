@@ -57,8 +57,22 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/cabins")
                         .hasRole("ADMIN")
 
+                        .requestMatchers(HttpMethod.PUT, "/api/cabins/*")
+                        .hasRole("ADMIN")
+
                         // View Cabins -> Any Logged-in User
                         .requestMatchers(HttpMethod.GET, "/api/cabins/**")
+                        .authenticated()
+
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/cabins/*/deactivate")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.PATCH,
+                                "/api/cabins/*/activate")
+                        .hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.GET, "/api/cabins/available")
                         .authenticated()
 
                         // ==========================
@@ -85,6 +99,22 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "MANAGER")
 
                         .requestMatchers(HttpMethod.GET, "/api/bookings")
+                        .hasAnyRole("ADMIN", "MANAGER")
+
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/bookings/*/cancel")
+                        .hasRole("EMPLOYEE")
+
+
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/bookings/*")
+                        .authenticated()
+
+
+                        .requestMatchers(HttpMethod.GET, "/api/dashboard/**")
+                        .hasAnyRole("ADMIN", "MANAGER")
+
+                        .requestMatchers(HttpMethod.GET, "/api/dashboard/**")
                         .hasAnyRole("ADMIN", "MANAGER")
                         
                         // Everything else requires login

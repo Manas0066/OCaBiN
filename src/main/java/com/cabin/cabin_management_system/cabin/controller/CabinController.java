@@ -1,6 +1,7 @@
 package com.cabin.cabin_management_system.cabin.controller;
 
 import com.cabin.cabin_management_system.cabin.dto.request.CabinRequest;
+import com.cabin.cabin_management_system.cabin.dto.request.UpdateCabinRequest;
 import com.cabin.cabin_management_system.cabin.dto.response.CabinResponse;
 import com.cabin.cabin_management_system.cabin.service.CabinService;
 import com.cabin.cabin_management_system.common.response.ApiResponse;
@@ -67,5 +68,69 @@ public class CabinController {
                 );
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PutMapping("/{cabinId}")
+    public ResponseEntity<ApiResponse<CabinResponse>> updateCabin(
+            @PathVariable Long cabinId,
+            @RequestBody UpdateCabinRequest request) {
+
+        CabinResponse response =
+                cabinService.updateCabin(cabinId, request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Cabin Updated Successfully",
+                        response
+                )
+        );
+    }
+
+    @PatchMapping("/{cabinId}/deactivate")
+    public ResponseEntity<ApiResponse<CabinResponse>> deactivateCabin(
+            @PathVariable Long cabinId) {
+
+        CabinResponse response =
+                cabinService.deactivateCabin(cabinId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Cabin deactivated successfully.",
+                        response
+                )
+        );
+    }
+
+    @PatchMapping("/{cabinId}/activate")
+    public ResponseEntity<ApiResponse<CabinResponse>> activateCabin(
+            @PathVariable Long cabinId) {
+
+        CabinResponse response =
+                cabinService.activateCabin(cabinId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Cabin activated successfully.",
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<List<CabinResponse>>> getAvailableCabins() {
+
+        List<CabinResponse> response =
+                cabinService.getAvailableCabins();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Available cabins fetched successfully.",
+                        response
+                )
+        );
     }
 }
