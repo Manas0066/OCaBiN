@@ -26,7 +26,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String password;
 
     @Column(nullable = false, unique = true)
@@ -48,4 +48,9 @@ public class User {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+
+    @Column(nullable = false)
+    private Boolean firstLogin = true;
+
 }

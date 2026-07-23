@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -46,6 +47,13 @@ public class Cabin {
 
     @Column(nullable = false)
     private Boolean active;
+
+    @OneToMany(
+            mappedBy = "cabin",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<CabinImage> images = new ArrayList<>();
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

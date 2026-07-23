@@ -1,11 +1,16 @@
 package com.cabin.cabin_management_system.controller;
 
+
+import com.cabin.cabin_management_system.auth.dto.request.ChangePasswordRequest;
 import com.cabin.cabin_management_system.auth.dto.request.LoginRequest;
 import com.cabin.cabin_management_system.auth.dto.request.RegisterRequest;
+
 import com.cabin.cabin_management_system.auth.dto.response.LoginResponse;
 import com.cabin.cabin_management_system.auth.dto.response.UserResponse;
+
 import com.cabin.cabin_management_system.auth.service.AuthService;
 import com.cabin.cabin_management_system.common.response.ApiResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +23,7 @@ public class AuthController {
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+
     }
 
     @PostMapping("/register")
@@ -39,17 +45,38 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @RequestBody LoginRequest request){
+            @RequestBody LoginRequest request) {
 
         LoginResponse response = authService.login(request);
+
+        String message = response.isPasswordChangeRequired()
+                ? "Password change required"
+                : "Login Successful";
 
         ApiResponse<LoginResponse> apiResponse =
                 new ApiResponse<>(
                         true,
-                        "Login Successful",
+                        message,
                         response
                 );
 
         return ResponseEntity.ok(apiResponse);
     }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<ApiResponse<String>> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request) {
+
+        authService.changePassword(request);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Password changed successfully. Please login again.",
+                        null
+                )
+        );
+    }
+
+
 }

@@ -14,4 +14,6 @@ public class LoginResponse {
     private String token;
 
     private UserResponse user;
+
+    private boolean passwordChangeRequired;
 }

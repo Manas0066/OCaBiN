@@ -2,6 +2,7 @@ package com.cabin.cabin_management_system.cabin.service;
 
 import com.cabin.cabin_management_system.cabin.dto.request.CabinRequest;
 import com.cabin.cabin_management_system.cabin.dto.request.UpdateCabinRequest;
+import com.cabin.cabin_management_system.cabin.dto.response.CabinImageResponse;
 import com.cabin.cabin_management_system.cabin.dto.response.CabinResponse;
 import com.cabin.cabin_management_system.cabin.entity.Cabin;
 import com.cabin.cabin_management_system.cabin.repository.CabinRepository;
@@ -156,6 +157,17 @@ public class CabinService {
         response.setAmenities(cabin.getAmenities());
         response.setStatus(cabin.getStatus());
         response.setActive(cabin.getActive());
+        response.setImages(
+                cabin.getImages()
+                        .stream()
+                        .map(img -> {
+                            CabinImageResponse dto = new CabinImageResponse();
+                            dto.setId(img.getId());
+                            dto.setImageUrl(img.getImageUrl());
+                            return dto;
+                        })
+                        .toList()
+        );
 
         return response;
     }

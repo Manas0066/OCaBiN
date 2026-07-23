@@ -1,5 +1,6 @@
 package com.cabin.cabin_management_system.auth.service;
 
+import com.cabin.cabin_management_system.auth.dto.request.ChangePasswordRequest;
 import com.cabin.cabin_management_system.auth.dto.request.LoginRequest;
 import com.cabin.cabin_management_system.auth.dto.request.RegisterRequest;
 import com.cabin.cabin_management_system.auth.dto.response.LoginResponse;
@@ -79,8 +80,22 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new NoSuchElementException("User not found."));
 
+        if (user.getStatus() == UserStatus.DISABLED) {
+            throw new IllegalArgumentException(
+                    "Your account has been disabled."
+            );
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new IllegalArgumentException("Invalid Password");
+        }
+
+        LoginResponse response = new LoginResponse();
+
+        // First login -> don't generate JWT
+        if (Boolean.TRUE.equals(user.getFirstLogin())) {
+            response.setPasswordChangeRequired(true);
+            return response;
         }
 
         String token = jwtService.generateToken(user);
@@ -94,13 +109,37 @@ public class AuthService {
         userResponse.setDepartment(user.getDepartment());
         userResponse.setRole(user.getRole());
         userResponse.setStatus(user.getStatus());
+        userResponse.setFirstLogin(user.getFirstLogin());
 
-        LoginResponse response = new LoginResponse();
-
+        response.setPasswordChangeRequired(false);
         response.setTokenType("Bearer");
         response.setToken(token);
         response.setUser(userResponse);
 
         return response;
+    }
+
+    public void changePassword(ChangePasswordRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new NoSuchElementException("User not found."));
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Current password is incorrect.");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new IllegalArgumentException("New password and Confirm password do not match.");
+        }
+
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("New password cannot be the same as the current password.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setFirstLogin(false);
+        user.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(user);
     }
 }

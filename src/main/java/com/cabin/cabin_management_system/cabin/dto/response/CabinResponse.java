@@ -27,4 +27,6 @@ public class CabinResponse {
     private CabinStatus status;
 
     private Boolean active;
+    
+    private List<CabinImageResponse> images;
 }
