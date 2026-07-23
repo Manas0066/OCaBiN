@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-primary: #10b981; /* Emerald 500 */
+    --brand-dark: #0f172a;    /* Slate 900 */
+  }
+
+  body {
+    @apply bg-[#f8fafc] text-slate-900 antialiased font-sans;
+  }
+
+  * {
+    @apply border-slate-200;
+  }
+}
+
+@layer components {
+  /* Premium card with soft shadow and hover lift */
+  .premium-card {
+    @apply bg-white border border-slate-200/60 rounded-[24px] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:-translate-y-1;
+  }
+
+  /* Frosted glass effect for Sidebars/Headers */
+  .glass {
+    @apply bg-white/80 backdrop-blur-xl border-r border-slate-200/50;
+  }
+
+  /* Modern table styling */
+  .modern-table {
+    @apply w-full text-left border-separate border-spacing-y-2;
+  }
+
+  .modern-table th {
+    @apply px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest;
+  }
+
+  .modern-table tr {
+    @apply bg-white transition-colors hover:bg-slate-50;
+  }
+
+  .modern-table td {
+    @apply px-6 py-4 first:rounded-l-2xl last:rounded-r-2xl border-y border-slate-100 first:border-l last:border-r text-sm font-medium;
+  }
+}
+
+/* Custom scrollbar for a cleaner look */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
