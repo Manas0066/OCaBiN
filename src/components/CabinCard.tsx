@@ -1,3 +1,220 @@
+// import React from "react";
+// import {
+//   MapPin,
+//   Users,
+//   Building2,
+//   ChevronRight,
+//   Wifi,
+//   Monitor,
+//   Coffee,
+//   Activity,
+//   Eye,
+// } from "lucide-react";
+// import { Cabin } from "../types";
+
+// const API_BASE_URL = "http://localhost:8080";
+
+// interface CabinCardProps {
+//   cabin: Cabin;
+//   onEdit?: (cabin: Cabin) => void;
+//   onBookNow?: (cabin: Cabin) => void;
+//   onViewDetails?: (cabin: Cabin) => void;
+//   onViewAvailability?: (cabin: Cabin) => void;
+//   userRole: "ADMIN" | "EMPLOYEE";
+// }
+
+// export default function CabinCard({
+//   cabin,
+//   onBookNow,
+//   onViewDetails,
+//   onViewAvailability,
+//   userRole,
+// }: CabinCardProps) {
+//   const getAmenityIcon = (name: string) => {
+//     const n = name.toLowerCase();
+
+//     if (n.includes("wifi")) return <Wifi size={12} />;
+
+//     if (n.includes("monitor") || n.includes("tv"))
+//       return <Monitor size={12} />;
+
+//     if (n.includes("coffee")) return <Coffee size={12} />;
+
+//     return null;
+//   };
+
+//   return (
+//     <div className="premium-card overflow-hidden group">
+
+//       <div
+//         className={`h-1.5 w-full ${
+//           cabin.status === "AVAILABLE"
+//             ? "bg-emerald-500"
+//             : "bg-slate-300"
+//         }`}
+//       />
+
+//       <div className="p-6">
+
+//         {/* Cover Image */}
+
+//         <div
+//           className="relative h-52 rounded-2xl overflow-hidden bg-slate-100 cursor-pointer"
+//           onClick={() => onViewDetails?.(cabin)}
+//         >
+//           {cabin.images && cabin.images.length > 0 ? (
+//             <img
+//               src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
+//               alt={cabin.cabinName}
+//               className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+//             />
+//           ) : (
+//             <div className="w-full h-full flex justify-center items-center text-slate-400">
+//               <Building2 size={60} />
+//             </div>
+//           )}
+
+//           {cabin.images.length > 1 && (
+//             <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
+//               +{cabin.images.length - 1} Photos
+//             </div>
+//           )}
+//         </div>
+
+//         {/* Status */}
+
+//         <div className="flex justify-between items-center mt-5">
+
+//           <h3 className="text-xl font-black text-slate-800">
+//             {cabin.cabinName}
+//           </h3>
+
+//           <span
+//             className={`text-[10px] font-black px-3 py-1 rounded-full uppercase
+
+//             ${
+//               cabin.status === "AVAILABLE"
+//                 ? "bg-emerald-100 text-emerald-700"
+//                 : "bg-slate-100 text-slate-500"
+//             }`}
+//           >
+//             {cabin.status}
+//           </span>
+
+//         </div>
+
+//         <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase mt-2 mb-5">
+//           <MapPin size={12} />
+//           {cabin.location} • Floor {cabin.floor}
+//         </div>
+
+//         {/* Stats */}
+
+//         <div className="grid grid-cols-2 gap-4 mb-6">
+
+//           <div className="bg-slate-50 rounded-2xl border border-slate-100 p-3">
+
+//             <div className="flex items-center gap-2 text-slate-400 mb-2">
+//               <Users size={12} />
+//               <span className="text-[10px] uppercase">
+//                 Capacity
+//               </span>
+//             </div>
+
+//             <p className="font-black">
+//               {cabin.capacity} Seats
+//             </p>
+
+//           </div>
+
+//           <div className="bg-slate-50 rounded-2xl border border-slate-100 p-3">
+
+//             <div className="flex items-center gap-2 text-slate-400 mb-2">
+//               <Activity size={12} />
+//               <span className="text-[10px] uppercase">
+//                 Amenities
+//               </span>
+//             </div>
+
+//             <div className="flex gap-2">
+
+//               {cabin.amenities.slice(0, 3).map((item, index) => (
+//                 <div key={index}>
+//                   {getAmenityIcon(item) ?? (
+//                     <div className="w-2 h-2 rounded-full bg-slate-300" />
+//                   )}
+//                 </div>
+//               ))}
+
+//               {cabin.amenities.length > 3 && (
+//                 <span className="text-xs text-slate-400">
+//                   +{cabin.amenities.length - 3}
+//                 </span>
+//               )}
+
+//             </div>
+
+//           </div>
+
+//         </div>
+
+//         {/* Buttons */}
+
+//         {userRole === "EMPLOYEE" ? (
+
+//           <div className="space-y-3">
+
+//             <button
+//               onClick={() => onViewDetails?.(cabin)}
+//               className="w-full py-3 rounded-2xl border border-slate-200 font-semibold hover:bg-slate-50 flex justify-center items-center gap-2"
+//             >
+//               <Eye size={18} />
+
+//               View Details
+
+//             </button>
+
+//             <button
+//   onClick={() => onViewAvailability?.(cabin)}
+//   className="w-full py-3 rounded-2xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold"
+// >
+//   Today's Schedule
+// </button>
+
+//             <button
+//               disabled={cabin.status !== "AVAILABLE"}
+//               onClick={() => onBookNow?.(cabin)}
+//               className={`w-full py-4 rounded-2xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition
+
+//               ${
+//                 cabin.status === "AVAILABLE"
+//                   ? "bg-emerald-500 hover:bg-emerald-600 text-white"
+//                   : "bg-slate-100 text-slate-400 cursor-not-allowed"
+//               }`}
+//             >
+
+//               Reserve Now
+
+//               <ChevronRight size={16} />
+
+//             </button>
+
+//           </div>
+
+//         ) : (
+
+//           <button className="w-full py-3 rounded-2xl border border-slate-200 font-semibold">
+//             Manage Cabin
+//           </button>
+
+//         )}
+
+//       </div>
+
+//     </div>
+//   );
+// }
+
 import React from "react";
 import {
   MapPin,
@@ -9,6 +226,7 @@ import {
   Coffee,
   Activity,
   Eye,
+  Calendar,
 } from "lucide-react";
 import { Cabin } from "../types";
 
@@ -19,6 +237,7 @@ interface CabinCardProps {
   onEdit?: (cabin: Cabin) => void;
   onBookNow?: (cabin: Cabin) => void;
   onViewDetails?: (cabin: Cabin) => void;
+  onViewAvailability?: (cabin: Cabin) => void;
   userRole: "ADMIN" | "EMPLOYEE";
 }
 
@@ -26,182 +245,147 @@ export default function CabinCard({
   cabin,
   onBookNow,
   onViewDetails,
+  onViewAvailability,
   userRole,
 }: CabinCardProps) {
   const getAmenityIcon = (name: string) => {
     const n = name.toLowerCase();
 
     if (n.includes("wifi")) return <Wifi size={12} />;
-
-    if (n.includes("monitor") || n.includes("tv"))
-      return <Monitor size={12} />;
-
+    if (n.includes("monitor") || n.includes("tv")) return <Monitor size={12} />;
     if (n.includes("coffee")) return <Coffee size={12} />;
 
     return null;
   };
 
   return (
-    <div className="premium-card overflow-hidden group">
-
+    <div className="premium-card overflow-hidden group hover:border-emerald-500/30 hover:shadow-[0_20px_50px_rgba(16,185,129,0.03)] duration-300 bg-white border border-slate-200/60 p-5 rounded-[28px]">
+      
+      {/* Cover Image Container */}
       <div
-        className={`h-1.5 w-full ${
-          cabin.status === "AVAILABLE"
-            ? "bg-emerald-500"
-            : "bg-slate-300"
-        }`}
-      />
-
-      <div className="p-6">
-
-        {/* Cover Image */}
-
-        <div
-          className="relative h-52 rounded-2xl overflow-hidden bg-slate-100 cursor-pointer"
-          onClick={() => onViewDetails?.(cabin)}
-        >
-          {cabin.images && cabin.images.length > 0 ? (
-            <img
-              src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
-              alt={cabin.cabinName}
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-            />
-          ) : (
-            <div className="w-full h-full flex justify-center items-center text-slate-400">
-              <Building2 size={60} />
-            </div>
-          )}
-
-          {cabin.images.length > 1 && (
-            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full">
-              +{cabin.images.length - 1} Photos
-            </div>
-          )}
-        </div>
-
-        {/* Status */}
-
-        <div className="flex justify-between items-center mt-5">
-
-          <h3 className="text-xl font-black text-slate-800">
-            {cabin.cabinName}
-          </h3>
-
-          <span
-            className={`text-[10px] font-black px-3 py-1 rounded-full uppercase
-
-            ${
-              cabin.status === "AVAILABLE"
-                ? "bg-emerald-100 text-emerald-700"
-                : "bg-slate-100 text-slate-500"
-            }`}
-          >
-            {cabin.status}
-          </span>
-
-        </div>
-
-        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase mt-2 mb-5">
-          <MapPin size={12} />
-          {cabin.location} • Floor {cabin.floor}
-        </div>
-
-        {/* Stats */}
-
-        <div className="grid grid-cols-2 gap-4 mb-6">
-
-          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-3">
-
-            <div className="flex items-center gap-2 text-slate-400 mb-2">
-              <Users size={12} />
-              <span className="text-[10px] uppercase">
-                Capacity
-              </span>
-            </div>
-
-            <p className="font-black">
-              {cabin.capacity} Seats
-            </p>
-
-          </div>
-
-          <div className="bg-slate-50 rounded-2xl border border-slate-100 p-3">
-
-            <div className="flex items-center gap-2 text-slate-400 mb-2">
-              <Activity size={12} />
-              <span className="text-[10px] uppercase">
-                Amenities
-              </span>
-            </div>
-
-            <div className="flex gap-2">
-
-              {cabin.amenities.slice(0, 3).map((item, index) => (
-                <div key={index}>
-                  {getAmenityIcon(item) ?? (
-                    <div className="w-2 h-2 rounded-full bg-slate-300" />
-                  )}
-                </div>
-              ))}
-
-              {cabin.amenities.length > 3 && (
-                <span className="text-xs text-slate-400">
-                  +{cabin.amenities.length - 3}
-                </span>
-              )}
-
-            </div>
-
-          </div>
-
-        </div>
-
-        {/* Buttons */}
-
-        {userRole === "EMPLOYEE" ? (
-
-          <div className="space-y-3">
-
-            <button
-              onClick={() => onViewDetails?.(cabin)}
-              className="w-full py-3 rounded-2xl border border-slate-200 font-semibold hover:bg-slate-50 flex justify-center items-center gap-2"
-            >
-              <Eye size={18} />
-
-              View Details
-
-            </button>
-
-            <button
-              disabled={cabin.status !== "AVAILABLE"}
-              onClick={() => onBookNow?.(cabin)}
-              className={`w-full py-4 rounded-2xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition
-
-              ${
-                cabin.status === "AVAILABLE"
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
-              }`}
-            >
-
-              Reserve Now
-
-              <ChevronRight size={16} />
-
-            </button>
-
-          </div>
-
+        className="relative h-52 rounded-2xl overflow-hidden bg-slate-50 cursor-pointer shadow-sm group/img"
+        onClick={() => onViewDetails?.(cabin)}
+      >
+        {cabin.images && cabin.images.length > 0 ? (
+          <img
+            src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
+            alt={cabin.cabinName}
+            className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 ease-out"
+          />
         ) : (
-
-          <button className="w-full py-3 rounded-2xl border border-slate-200 font-semibold">
-            Manage Cabin
-          </button>
-
+          <div className="w-full h-full flex justify-center items-center text-slate-400 bg-slate-50">
+            <Building2 size={50} className="stroke-1 text-slate-300" />
+          </div>
         )}
 
+        {/* Faint elegant shadow overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent pointer-events-none" />
+
+        {cabin.images && cabin.images.length > 1 && (
+          <div className="absolute bottom-3.5 right-3.5 bg-white/90 backdrop-blur-md border border-slate-200/60 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+            +{cabin.images.length - 1} Photos
+          </div>
+        )}
       </div>
 
+      {/* Title & Pulse Status Indicator */}
+      <div className="flex justify-between items-center mt-5">
+        <h3 className="text-lg font-black text-slate-900 group-hover:text-emerald-600 transition-colors duration-250 tracking-tight">
+          {cabin.cabinName}
+        </h3>
+        
+        {/* Pulsing indicator dot */}
+        <span
+          className={`inline-flex items-center text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest border transition-all duration-300 ${
+            cabin.status === "AVAILABLE"
+              ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+              : "bg-slate-50 text-slate-500 border-slate-200"
+          }`}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
+            cabin.status === "AVAILABLE" ? "bg-emerald-500 animate-pulse" : "bg-slate-400"
+          }`} />
+          {cabin.status}
+        </span>
+      </div>
+
+      {/* Metadata Row */}
+      <div className="flex items-center gap-1.5 text-slate-500 font-bold text-[10px] uppercase tracking-wider mt-2.5 mb-5">
+        <MapPin size={11} className="text-slate-400" />
+        {cabin.location} • Floor {cabin.floor}
+      </div>
+
+      {/* Specifications Section */}
+      <div className="grid grid-cols-2 gap-3.5 mb-6">
+        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-3.5 transition-all duration-300 group-hover:border-slate-200 hover:bg-slate-50">
+          <div className="flex items-center gap-1.5 text-slate-400 mb-1.5">
+            <Users size={11} className="text-emerald-500" />
+            <span className="text-[9px] uppercase font-bold tracking-widest">Capacity</span>
+          </div>
+          <p className="font-extrabold text-sm text-slate-800">{cabin.capacity} Seats</p>
+        </div>
+
+        <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-3.5 transition-all duration-300 group-hover:border-slate-200 hover:bg-slate-50">
+          <div className="flex items-center gap-1.5 text-slate-400 mb-1.5">
+            <Activity size={11} className="text-emerald-500" />
+            <span className="text-[9px] uppercase font-bold tracking-widest">Amenities</span>
+          </div>
+          <div className="flex gap-2 items-center h-5 text-slate-500">
+            {cabin.amenities.slice(0, 3).map((item, index) => (
+              <div key={index} className="text-slate-500 hover:text-emerald-600 transition-colors duration-200">
+                {getAmenityIcon(item) ?? <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />}
+              </div>
+            ))}
+            {cabin.amenities.length > 3 && (
+              <span className="text-[10px] text-slate-500 font-bold tracking-tighter">
+                +{cabin.amenities.length - 3}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Action Buttons */}
+      {userRole === "EMPLOYEE" ? (
+        <div className="space-y-3">
+          {/* Split grid row for secondary items */}
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              onClick={() => onViewDetails?.(cabin)}
+              className="py-2.5 rounded-xl border border-slate-200/80 bg-slate-50 hover:bg-slate-100 font-bold text-xs text-slate-700 hover:text-slate-900 active:scale-[0.97] transition-all flex justify-center items-center gap-1.5"
+            >
+              <Eye size={14} className="text-slate-400" />
+              Details
+            </button>
+
+            <button
+              onClick={() => onViewAvailability?.(cabin)}
+              className="py-2.5 rounded-xl border border-emerald-100/50 bg-emerald-50/40 hover:bg-emerald-50 hover:border-emerald-250 font-bold text-xs text-emerald-700 active:scale-[0.97] transition-all flex justify-center items-center gap-1.5"
+            >
+              <Calendar size={14} className="text-emerald-600" />
+              Schedule
+            </button>
+          </div>
+
+          {/* Glowing Gradient Primary Action Button */}
+          <button
+            disabled={cabin.status !== "AVAILABLE"}
+            onClick={() => onBookNow?.(cabin)}
+            className={`w-full py-3.5 rounded-xl font-black uppercase tracking-wider text-xs flex justify-center items-center gap-1.5 active:scale-[0.98] transition-all duration-300 ${
+              cabin.status === "AVAILABLE"
+                ? "bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-md shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/20"
+                : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+            }`}
+          >
+            <span>Book Resource</span>
+            <ChevronRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
+      ) : (
+        <button className="w-full py-3 rounded-2xl border border-slate-200 hover:border-slate-350 font-bold text-xs text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">
+          Manage Cabin
+        </button>
+      )}
     </div>
   );
 }

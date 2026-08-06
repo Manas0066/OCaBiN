@@ -1,32 +1,151 @@
-@import "tailwindcss";
+/* @import "tailwindcss";
 
 @layer base {
   :root {
-    --brand-primary: #10b981; /* Emerald 500 */
-    --brand-dark: #0f172a;    /* Slate 900 */
+    --brand-primary: #10b981; 
+    --brand-dark: #090d16;   
   }
 
-  body {
-    @apply bg-[#f8fafc] text-slate-900 antialiased font-sans;
+
+  html, body, #root, .min-h-screen {
+    background-color: #090d16 !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.18) 1.2px, transparent 0) !important;
+    background-size: 24px 24px !important;
+    color: #f1f5f9 !important;
   }
 
-  * {
-    @apply border-slate-200;
+  
+  .bg-slate-50,
+  .bg-[#f8fafc],
+  .bg-[#f1f5f9],
+  .bg-slate-100 {
+    background-color: #090d16 !important;
+  }
+
+  
+  .bg-white, 
+  .bg-slate-50\/50,
+  .bg-slate-50\/20,
+  .bg-white\/80 {
+    background-color: #111425 !important;
+  }
+
+  
+  .glass, 
+  .bg-white\/40,
+  .bg-white\/45 {
+    background-color: rgba(13, 16, 29, 0.75) !important;
+    backdrop-filter: blur(16px) !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+
+  .text-slate-900, 
+  .text-slate-800, 
+  .text-slate-700, 
+  .text-slate-600,
+  .text-slate-500,
+  p.text-slate-500,
+  h1, h2, h3, h4, h5, h6 {
+    color: #f8fafc !important;
+  }
+
+  
+  .text-slate-400,
+  .text-slate-455 {
+    color: #94a3b8 !important;
+  }
+
+  
+  .border, 
+  .border-slate-100, 
+  .border-slate-200, 
+  .border-slate-300,
+  .border-y, 
+  .border-t, 
+  .border-b, 
+  .border-r, 
+  .border-l {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  
+  input, select, textarea {
+    background-color: #161a30 !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #4b5563 !important;
+  }
+
+ 
+  .text-green-700, .text-emerald-700, .text-emerald-600 {
+    color: #34d399 !important;
+  }
+  .bg-green-100, .bg-emerald-100, .bg-emerald-50 {
+    background-color: rgba(16, 185, 129, 0.15) !important;
+    border-color: rgba(16, 185, 129, 0.25) !important;
+  }
+
+  .text-red-700, .text-rose-700 {
+    color: #f87171 !important;
+  }
+  .bg-red-100, .bg-rose-100, .bg-rose-50 {
+    background-color: rgba(244, 63, 94, 0.15) !important;
+    border-color: rgba(244, 63, 94, 0.25) !important;
+  }
+
+  
+  .text-yellow-700, .text-amber-700 {
+    color: #fbbf24 !important;
+  }
+  .bg-yellow-100, .bg-amber-100, .bg-amber-50 {
+    background-color: rgba(245, 158, 11, 0.15) !important;
+    border-color: rgba(245, 158, 11, 0.25) !important;
+  }
+
+  
+  .bg-indigo-600, .bg-indigo-700 {
+    background-color: #4f46e5 !important;
+  }
+  .hover\:bg-indigo-700:hover {
+    background-color: #4338ca !important;
+  }
+}
+
+@layer utilities {
+  
+  .premium-bg-pattern {
+    background-color: #090d16 !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.18) 1.2px, transparent 0) !important;
+    background-size: 24px 24px !important;
+  }
+
+ 
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
 
 @layer components {
-  /* Premium card with soft shadow and hover lift */
+  
   .premium-card {
-    @apply bg-white border border-slate-200/60 rounded-[24px] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:-translate-y-1;
+    @apply bg-[#111425] border border-slate-800/70 rounded-[24px] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)] hover:-translate-y-1 hover:border-slate-700/80;
   }
 
-  /* Frosted glass effect for Sidebars/Headers */
-  .glass {
-    @apply bg-white/80 backdrop-blur-xl border-r border-slate-200/50;
-  }
-
-  /* Modern table styling */
+ 
   .modern-table {
     @apply w-full text-left border-separate border-spacing-y-2;
   }
@@ -36,15 +155,203 @@
   }
 
   .modern-table tr {
-    @apply bg-white transition-colors hover:bg-slate-50;
+    @apply bg-[#111425] transition-colors hover:bg-[#161a2e];
   }
 
   .modern-table td {
-    @apply px-6 py-4 first:rounded-l-2xl last:rounded-r-2xl border-y border-slate-100 first:border-l last:border-r text-sm font-medium;
+    @apply px-6 py-4 first:rounded-l-2xl last:rounded-r-2xl border-y border-slate-800/60 first:border-l last:border-r text-sm font-medium text-slate-200;
   }
 }
 
-/* Custom scrollbar for a cleaner look */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-800 rounded-full hover:bg-slate-700 transition-colors;
+} */
+
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand-primary: #10b981; /* Emerald 500 */
+    --brand-light: #f8fafc;    /* Off-white canvas */
+  }
+
+  /* 1. ROOT VIEWPORT: Premium light surface with subtle slate dots */
+  html, body, #root, .min-h-screen {
+    background-color: #f8fafc !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.08) 1.2px, transparent 0) !important;
+    background-size: 24px 24px !important;
+    color: #0f172a !important;
+  }
+
+  /* 2. BASE MAPPINGS: Direct overrides for outer wrappers */
+  .bg-[#090d16],
+  .bg-[#090D16],
+  .bg-slate-50,
+  .bg-[#f8fafc],
+  .bg-[#f1f5f9],
+  .bg-slate-100 {
+    background-color: #f8fafc !important;
+  }
+
+  /* 3. SOLID WHITE CONTAINER MAPPINGS: Direct overrides for cards & modals */
+  .bg-white, 
+  .bg-[#111425],
+  .bg-[#151a2e],
+  .bg-[#151a30],
+  .bg-[#161a30],
+  .bg-slate-50\/50,
+  .bg-slate-50\/20,
+  .bg-white\/80 {
+    background-color: #ffffff !important;
+  }
+
+  /* Frosted glass details */
+  .glass, 
+  header,
+  .bg-white\/40,
+  .bg-white\/45 {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(16px) !important;
+    border-color: rgba(15, 23, 42, 0.05) !important;
+  }
+
+  /* 4. TYPOGRAPHY: Force high-contrast dark text on light containers */
+  .text-slate-900, 
+  .text-slate-800, 
+  .text-slate-700, 
+  .text-slate-600,
+  .text-slate-500,
+  .text-white,
+  p.text-slate-500,
+  h1, h2, h3, h4, h5, h6 {
+    color: #0f172a !important;
+  }
+
+  /* Muted metadata labels */
+  .text-slate-400,
+  .text-slate-455 {
+    color: #64748b !important;
+  }
+
+  /* 5. BORDERS: Light elegant outlines */
+  .border, 
+  .border-slate-100, 
+  .border-slate-200, 
+  .border-slate-300,
+  .border-slate-800,
+  .border-slate-850,
+  .border-y, 
+  .border-t, 
+  .border-b, 
+  .border-r, 
+  .border-l {
+    border-color: rgba(15, 23, 42, 0.06) !important;
+  }
+
+  /* 6. FORM INPUTS */
+  input, select, textarea {
+    background-color: #ffffff !important;
+    border-color: rgba(15, 23, 42, 0.1) !important;
+    color: #0f172a !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  /* 7. NEON ACCENT BADGES: Emerald, Amber and Rose glows */
+  /* Emerald (APPROVED/AVAILABLE) */
+  .text-green-700, .text-emerald-700, .text-emerald-600 {
+    color: #059669 !important;
+  }
+  .bg-green-100, .bg-emerald-100, .bg-emerald-50, .bg-emerald-950\/30 {
+    background-color: rgba(16, 185, 129, 0.08) !important;
+    border-color: rgba(16, 185, 129, 0.15) !important;
+  }
+
+  /* Rose (REJECTED/CANCELLED) */
+  .text-red-700, .text-rose-700 {
+    color: #dc2626 !important;
+  }
+  .bg-red-100, .bg-rose-100, .bg-rose-50 {
+    background-color: rgba(244, 63, 94, 0.08) !important;
+    border-color: rgba(244, 63, 94, 0.15) !important;
+  }
+
+  /* Amber (PENDING/MAINTENANCE) */
+  .text-yellow-700, .text-amber-700 {
+    color: #d97706 !important;
+  }
+  .bg-yellow-100, .bg-amber-100, .bg-amber-50 {
+    background-color: rgba(245, 158, 11, 0.08) !important;
+    border-color: rgba(245, 158, 11, 0.15) !important;
+  }
+
+  /* Standard navigation buttons inside the workspace */
+  .bg-indigo-600, .bg-indigo-700 {
+    background-color: #10b981 !important;
+  }
+  .hover\:bg-indigo-700:hover {
+    background-color: #059669 !important;
+  }
+}
+
+@layer utilities {
+  /* Premium Light Theme Dot Grid Background utility */
+  .premium-bg-pattern {
+    background-color: #f8fafc !important;
+    background-image: radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.08) 1.2px, transparent 0) !important;
+    background-size: 24px 24px !important;
+  }
+
+  /* Smooth fade & lift transitions for views */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@layer components {
+  /* Premium light card wrapper */
+  .premium-card {
+    @apply bg-white border border-slate-200/50 rounded-[24px] transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:-translate-y-1 hover:border-slate-300;
+  }
+
+  /* Modern light-themed data tables */
+  .modern-table {
+    @apply w-full text-left border-separate border-spacing-y-2;
+  }
+
+  .modern-table th {
+    @apply px-6 py-4 text-[11px] font-bold text-slate-500 uppercase tracking-widest;
+  }
+
+  .modern-table tr {
+    @apply bg-white transition-colors hover:bg-slate-50/50;
+  }
+
+  .modern-table td {
+    @apply px-6 py-4 first:rounded-l-2xl last:rounded-r-2xl border-y border-slate-100 first:border-l last:border-r text-sm font-medium text-slate-800;
+  }
+}
+
+/* Scrollbars configuration */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -53,4 +360,73 @@
 }
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+/* ==========================================================================
+   SIDEBAR NAVIGATION HIGH-CONTRAST "WHITE GREEN" HOVER/ACTIVE STATES
+   ========================================================================== */
+
+/* 1. Default Inactive Sidebar Links: Muted slate colors */
+aside a {
+  background-color: transparent !important;
+  color: #64748b !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+aside a span,
+aside a svg {
+  color: #64748b !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* 2. Hovered Sidebar Links: Translucent light-green background pill, rich emerald text */
+aside a:hover {
+  background-color: rgba(16, 185, 129, 0.08) !important; /* bg-emerald-500/8 */
+  color: #059669 !important;                             /* Emerald 600 */
+}
+aside a:hover span,
+aside a:hover svg {
+  color: #059669 !important;
+}
+
+/* 3. Active Sidebar Links: Light-gray backdrop pill, high-contrast dark text/icon */
+aside a.active {
+  background-color: #e2e8f0 !important; /* bg-slate-200/70 */
+  color: #0f172a !important;            /* Slate 900 */
+}
+aside a.active span,
+aside a.active svg {
+  color: #0f172a !important;
+}
+
+/* ==========================================================================
+   UNIVERSAL TABLE OVERRIDES (FOR RAW AND CLASS-LESS TABLES GLOBALLY)
+   ========================================================================== */
+table {
+  background-color: #ffffff !important;
+  border-collapse: separate !important;
+}
+thead, thead tr {
+  background-color: #f8fafc !important;
+}
+thead th {
+  background-color: #f8fafc !important;
+  color: #64748b !important;
+  font-weight: 750 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  padding: 14px 20px !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.05) !important;
+}
+tbody tr {
+  background-color: #ffffff !important;
+  transition: bg-color 0.2s ease-in-out !important;
+}
+tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+tbody td {
+  color: #334155 !important;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.04) !important;
+  padding: 16px 20px !important;
 }

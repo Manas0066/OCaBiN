@@ -19,6 +19,8 @@ import MyBookings from "../components/employee/MyBookings";
 import ProtectedRoute from "./ProtectedRoute";
 import RoleProtectedRoute from "./RoleProtectedRoute";
 
+import LandingPage from "../pages/LandingPage";
+
 export default function AppRoutes() {
   const token = localStorage.getItem("token");
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -35,13 +37,14 @@ export default function AppRoutes() {
               replace
             />
           ) : (
-            <Navigate to="/login" replace />
+            <LandingPage />
           )
         }
       />
 
       {/* Public */}
       <Route path="/login" element={<Login />} />
+    
       <Route path="/change-password" element={<ChangePassword />} />
 
       {/* Protected */}

@@ -132,6 +132,11 @@ export const getCabins = () =>
 export const getCabin = (id: number) =>
   api.get(`/cabins/${id}`);
 
+export const getCabinAvailability = (
+  cabinId: number
+) =>
+  api.get(`/cabins/${cabinId}/availability`);
+
 export const createCabin = (data: any) =>
   api.post("/cabins", data);
 

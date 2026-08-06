@@ -11,7 +11,12 @@
 //   Settings2,
 //   CheckCircle2,
 //   AlertCircle,
-//   Plus
+//   Plus,
+//   Trash2,
+//   Upload,
+//   Calendar,
+//   Building2,
+//   ChevronRight
 // } from "lucide-react";
 
 // import {
@@ -24,6 +29,9 @@
 // } from "../../services/api";
 
 // import { Cabin, UpdateCabinRequest } from "../../types";
+// import CabinAvailabilityModal from "../employee/CabinAvailabilityModal";
+
+// const API_BASE_URL = "http://localhost:8080";
 
 // // Helper component to manage object URLs and prevent memory leaks
 // function ImagePreview({ file }: { file: File }) {
@@ -45,30 +53,24 @@
 //     <img
 //       src={previewUrl}
 //       alt="Preview"
-//       className="h-28 w-full rounded-xl object-cover border"
+//       className="h-full w-full object-cover rounded-xl"
 //     />
 //   );
 // }
 
 // export default function CabinManagement() {
 //   const [loading, setLoading] = useState(true);
+//   const [submitting, setSubmitting] = useState(false);
 //   const [cabins, setCabins] = useState<Cabin[]>([]);
 //   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
 //   const [cabinImages, setCabinImages] = useState<{ id: number; imageUrl: string }[]>([]);
-  
-//   // Create Modal States
-//   const [createOpen, setCreateOpen] = useState(false);
 //   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-//   const [createForm, setCreateForm] = useState({
-//     cabinName: "",
-//     floor: 1,
-//     capacity: 1,
-//     location: "",
-//     amenitiesText: "",
-//   });
+  
+//   // State to track if detail panel is in "Create New" draft state
+//   const [isCreatingNew, setIsCreatingNew] = useState(false);
+//   const [openAvailabilityModal, setOpenAvailabilityModal] = useState(false);
 
-//   // Edit Modal States
-//   const [open, setOpen] = useState(false);
+//   // Detail Panel Fields
 //   const [amenitiesText, setAmenitiesText] = useState("");
 //   const [form, setForm] = useState<UpdateCabinRequest>({
 //     cabinName: "",
@@ -80,11 +82,22 @@
 //     active: true,
 //   });
 
-//   const loadCabins = async () => {
+//   const loadCabins = async (selectFirstId?: number | null) => {
 //     try {
 //       setLoading(true);
 //       const response = await getCabins();
-//       setCabins(response.data.data);
+//       const cabinsList = response.data.data;
+//       setCabins(cabinsList);
+
+//       // Auto select first cabin or previously updated cabin
+//       if (cabinsList.length > 0) {
+//         if (selectFirstId) {
+//           const match = cabinsList.find((c: Cabin) => c.id === selectFirstId);
+//           if (match) handleSelectCabin(match);
+//         } else {
+//           handleSelectCabin(cabinsList[0]);
+//         }
+//       }
 //     } catch (err: any) {
 //       toast.error(err?.response?.data?.message ?? "Unable to load cabins.");
 //     } finally {
@@ -96,48 +109,11 @@
 //     loadCabins();
 //   }, []);
 
-//   // --- Create Logic ---
-//   const handleCreate = async () => {
-//     try {
-//       const response = await createCabin({
-//         cabinName: createForm.cabinName,
-//         floor: createForm.floor,
-//         capacity: createForm.capacity,
-//         location: createForm.location,
-//         amenities: createForm.amenitiesText
-//           .split(",")
-//           .map((item) => item.trim())
-//           .filter(Boolean),
-//       });
-
-//       const cabinId = response.data.data.id;
-
-//       if (selectedFiles.length > 0) {
-//         await uploadCabinImages(cabinId, selectedFiles);
-//       }
-
-//       toast.success("Cabin Created Successfully");
-//       setCreateOpen(false);
-
-//       setCreateForm({
-//         cabinName: "",
-//         floor: 1,
-//         capacity: 1,
-//         location: "",
-//         amenitiesText: "",
-//       });
-//       setSelectedFiles([]);
-//       await loadCabins();
-//     } catch (err: any) {
-//       toast.error(err?.response?.data?.message ?? "Unable to create cabin.");
-//     }
-//   };
-
-//   // --- Edit Logic ---
-//   const handleEdit = async (cabin: Cabin) => {
+//   const handleSelectCabin = async (cabin: Cabin) => {
+//     setIsCreatingNew(false);
 //     setSelectedCabin(cabin);
 //     setAmenitiesText(cabin.amenities.join(", "));
-//     setSelectedFiles([]); // Reset previously selected file uploads
+//     setSelectedFiles([]);
 //     setForm({
 //       cabinName: cabin.cabinName,
 //       floor: cabin.floor,
@@ -147,34 +123,100 @@
 //       status: cabin.status,
 //       active: cabin.active,
 //     });
-//     setOpen(true);
 //     try {
 //       const response = await getCabinImages(cabin.id);
 //       setCabinImages(response.data.data);
 //     } catch (error) {
-//       toast.error("Unable to load cabin images.");
+//       setCabinImages([]);
 //     }
 //   };
 
+//   const handleStartCreate = () => {
+//     setIsCreatingNew(true);
+//     setSelectedCabin(null);
+//     setCabinImages([]);
+//     setSelectedFiles([]);
+//     setAmenitiesText("");
+//     setForm({
+//       cabinName: "",
+//       floor: 1,
+//       capacity: 1,
+//       location: "",
+//       amenities: [],
+//       status: "AVAILABLE",
+//       active: true,
+//     });
+//   };
+
+//   const validateForm = (name: string, location: string) => {
+//     if (!name.trim()) {
+//       toast.error("Cabin Name is required.");
+//       return false;
+//     }
+//     if (!location.trim()) {
+//       toast.error("Location / Zone is required.");
+//       return false;
+//     }
+//     return true;
+//   };
+
+//   // --- Create logic trigger ---
+//   const handleCreate = async () => {
+//     if (!validateForm(form.cabinName, form.location)) return;
+
+//     try {
+//       setSubmitting(true);
+//       const amenitiesArr = amenitiesText
+//         .split(",")
+//         .map((item) => item.trim())
+//         .filter(Boolean);
+
+//       const response = await createCabin({
+//         cabinName: form.cabinName,
+//         floor: form.floor,
+//         capacity: form.capacity,
+//         location: form.location,
+//         amenities: amenitiesArr,
+//       });
+
+//       const cabinId = response.data.data.id;
+
+//       if (selectedFiles.length > 0) {
+//         await uploadCabinImages(cabinId, selectedFiles);
+//       }
+
+//       toast.success("Cabin Created Successfully");
+//       setSelectedFiles([]);
+//       await loadCabins(cabinId);
+//     } catch (err: any) {
+//       toast.error(err?.response?.data?.message ?? "Unable to create cabin.");
+//     } finally {
+//       setSubmitting(false);
+//     }
+//   };
+
+//   // --- Update logic trigger ---
 //   const handleUpdate = async () => {
 //     if (!selectedCabin) return;
+//     if (!validateForm(form.cabinName, form.location)) return;
+
 //     const finalAmenities = amenitiesText.split(",").map((i) => i.trim()).filter(Boolean);
     
 //     try {
-//       // Update details
+//       setSubmitting(true);
 //       await updateCabin(selectedCabin.id, { ...form, amenities: finalAmenities });
       
-//       // Upload any new images added during edit
 //       if (selectedFiles.length > 0) {
 //         await uploadCabinImages(selectedCabin.id, selectedFiles);
 //       }
 
 //       toast.success("Cabin Updated Successfully");
-//       setOpen(false);
 //       setSelectedFiles([]);
-//       await loadCabins();
+//       await loadCabins(selectedCabin.id);
 //     } catch (err: any) {
 //       toast.error(err?.response?.data?.message ?? "Update failed.");
+//     } finally {
+//       setSubmitting(false);
 //     }
 //   };
 
@@ -184,18 +226,14 @@
 //       await deleteCabinImage(imageId);
 //       toast.success("Image deleted successfully");
       
-//       // Refresh local images view list
 //       const response = await getCabinImages(selectedCabin.id);
 //       setCabinImages(response.data.data);
-      
-//       // Refresh parent cabins list to update the thumbnail if needed
-//       await loadCabins();
 //     } catch (err: any) {
 //       toast.error(err?.response?.data?.message ?? "Failed to delete image.");
 //     }
 //   };
 
-//   if (loading) {
+//   if (loading && cabins.length === 0) {
 //     return (
 //       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
 //         <div className="h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -205,384 +243,309 @@
 //   }
 
 //   return (
-//     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-//       {/* Top Header Section */}
-//       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-//         <div>
-//           <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-2">Resource Management</p>
-//           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Cabin Inventory</h1>
-//         </div>
-        
-//         <div className="flex gap-3 w-full md:w-auto">
+//     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
+      
+//       {/* LEFT COLUMN: Cabins Selector Master List */}
+//       <div className="lg:col-span-4 space-y-6">
+//         <div className="flex items-center justify-between">
+//           <div>
+//             <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-1.5">Resource Management</p>
+//             <h1 className="text-3xl font-black text-white tracking-tight">Cabin Inventory</h1>
+//           </div>
 //           <button
-//             onClick={() => {
-//               setCreateOpen(true);
-//               setSelectedFiles([]);
-//             }}
-//             className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95"
+//             onClick={handleStartCreate}
+//             className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-500/10 active:scale-95 flex-shrink-0"
+//             title="Register New Cabin"
 //           >
-//             <Plus size={18} />
-//             Create Cabin
-//           </button>
-//           <button
-//             onClick={loadCabins}
-//             className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all active:scale-95"
-//           >
-//             <RefreshCcw size={18} />
-//             Refresh
+//             <Plus size={14} /> New
 //           </button>
 //         </div>
-//       </div>
+//         <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+//           Manage all cabins, their details, availability and status.
+//         </p>
 
-//       {/* Main Table */}
-//       <div className="overflow-x-auto pb-4">
-//         <table className="modern-table">
-//           <thead>
-//             <tr>
-//               <th>Cabin Details</th>
-//               <th>Specifications</th>
-//               <th>Status</th>
-//               <th>Visibility</th>
-//               <th className="text-right">Actions</th>
-//             </tr>
-//           </thead>
-//           <tbody>
-//             {cabins.map((cabin) => (
-//               <tr key={cabin.id} className="group">
-//                 <td className="min-w-[200px]">
-//                   <div className="flex items-center gap-4">
-//                     <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-//                       {cabin.images && cabin.images.length > 0 ? (
-//                         <img
-//                           src={`http://localhost:8080${cabin.images[0].imageUrl}`}
-//                           alt={cabin.cabinName}
-//                           className="w-full h-full object-cover"
-//                         />
-//                       ) : (
-//                         <div className="h-full w-full flex items-center justify-center text-slate-400">
-//                           <Layers size={20} />
-//                         </div>
-//                       )}
-//                     </div>
-//                     <div>
-//                       <div className="font-black text-slate-900">{cabin.cabinName}</div>
-//                       <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-tight">
-//                          <MapPin size={10} className="inline mr-1" />{cabin.location}
+//         {/* Scrollable list card stack */}
+//         <div className="space-y-3 max-h-[68vh] overflow-y-auto pr-1">
+//           {cabins.map((cabin) => {
+//             const isSelected = selectedCabin?.id === cabin.id;
+//             return (
+//               <div
+//                 key={cabin.id}
+//                 onClick={() => handleSelectCabin(cabin)}
+//                 className={`p-4 rounded-[20px] border cursor-pointer flex items-center justify-between transition-all duration-300 group ${
+//                   isSelected
+//                     ? "bg-[#111425] border-emerald-500/40 shadow-lg shadow-emerald-500/5"
+//                     : "bg-[#111425]/40 border-slate-800/60 hover:bg-[#111425]/85 hover:border-slate-700"
+//                 }`}
+//               >
+//                 <div className="flex items-center gap-3.5 min-w-0">
+//                   <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-950 flex-shrink-0 border border-slate-800">
+//                     {cabin.images && cabin.images.length > 0 ? (
+//                       <img
+//                         src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
+//                         alt={cabin.cabinName}
+//                         className="w-full h-full object-cover"
+//                       />
+//                     ) : (
+//                       <div className="h-full w-full flex items-center justify-center text-slate-500">
+//                         <Building2 size={18} />
 //                       </div>
-//                     </div>
+//                     )}
 //                   </div>
-//                 </td>
-//                 <td>
-//                   <div className="flex flex-col gap-1">
-//                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-//                       <Users size={12} className="text-slate-400" /> {cabin.capacity} Seats
-//                     </div>
-//                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Floor {cabin.floor}</div>
+//                   <div className="min-w-0">
+//                     <div className="font-bold text-white text-sm truncate">{cabin.cabinName}</div>
+//                     <div className="text-[10px] text-slate-500 font-bold uppercase mt-0.5 tracking-tight">Floor {cabin.floor}</div>
 //                   </div>
-//                 </td>
-//                 <td>
-//                   <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tight border ${
-//                     cabin.status === "AVAILABLE" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
-//                   }`}>
+//                 </div>
+
+//                 {/* Status Indicator */}
+//                 <span className="inline-flex items-center text-[9px] font-black uppercase tracking-wider">
+//                   <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
+//                     cabin.status === "AVAILABLE" ? "bg-emerald-400 animate-pulse" :
+//                     cabin.status === "OCCUPIED" ? "bg-rose-500" : "bg-amber-400"
+//                   }`} />
+//                   <span className={
+//                     cabin.status === "AVAILABLE" ? "text-emerald-400" :
+//                     cabin.status === "OCCUPIED" ? "text-rose-500" : "text-amber-400"
+//                   }>
 //                     {cabin.status}
 //                   </span>
-//                 </td>
-//                 <td>
-//                   <div className="flex items-center gap-2">
-//                     {cabin.active ? <CheckCircle2 size={16} className="text-emerald-500" /> : <AlertCircle size={16} className="text-slate-300" />}
-//                     <span className={`text-[10px] font-bold uppercase ${cabin.active ? "text-slate-700" : "text-slate-400"}`}>
-//                       {cabin.active ? "Public" : "Hidden"}
-//                     </span>
-//                   </div>
-//                 </td>
-//                 <td className="text-right">
-//                   <button
-//                     onClick={() => handleEdit(cabin)}
-//                     className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-all active:scale-95"
-//                   >
-//                     <Edit size={14} /> Edit
-//                   </button>
-//                 </td>
-//               </tr>
-//             ))}
-//           </tbody>
-//         </table>
+//                 </span>
+//               </div>
+//             );
+//           })}
+//         </div>
 //       </div>
 
-//       {/* --- CREATE MODAL --- */}
-//       {createOpen && (
-//         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-//           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-//             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-//               <div className="flex items-center gap-3">
-//                 <div className="h-10 w-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-white">
-//                   <Plus size={20} />
-//                 </div>
-//                 <div>
-//                   <h2 className="text-xl font-black text-slate-900 tracking-tight">New Resource</h2>
-//                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Register a new cabin</p>
-//                 </div>
-//               </div>
-//               <button onClick={() => setCreateOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={24} /></button>
+//       {/* RIGHT COLUMN: Active Details Form / Editor */}
+//       <div className="lg:col-span-8">
+//         <div className="bg-[#111425]/60 backdrop-blur-md border border-slate-800/80 rounded-[32px] p-8 space-y-6 shadow-xl relative overflow-hidden">
+          
+//           {/* Header Row */}
+//           <div className="flex items-center justify-between pb-5 border-b border-slate-850">
+//             <div>
+//               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+//                 {isCreatingNew ? "Configuration Panel" : `Cabin Settings • ID: CMS-0${selectedCabin?.id}`}
+//               </p>
+//               <h2 className="text-xl font-black text-white tracking-tight mt-1">
+//                 {isCreatingNew ? "Add New Cabin Resource" : "Edit Cabin Configuration"}
+//               </h2>
 //             </div>
-
-//             {/* Added: max-height and scrolling to keep fields on screen */}
-//             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[65vh] overflow-y-auto">
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cabin Name</label>
-//                 <input
-//                   placeholder="e.g. Executive Suite"
-//                   value={createForm.cabinName}
-//                   onChange={(e)=>setCreateForm({...createForm, cabinName:e.target.value})}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location / Zone</label>
-//                 <input
-//                   placeholder="e.g. North Wing"
-//                   value={createForm.location}
-//                   onChange={(e)=>setCreateForm({...createForm, location:e.target.value})}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor Number</label>
-//                 <input
-//                   type="number"
-//                   value={createForm.floor === 0 ? "" : createForm.floor}
-//                   onChange={(e)=>setCreateForm({...createForm, floor: e.target.value === "" ? 0 : Number(e.target.value)})}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Capacity</label>
-//                 <input
-//                   type="number"
-//                   value={createForm.capacity === 0 ? "" : createForm.capacity}
-//                   onChange={(e)=>setCreateForm({...createForm, capacity: e.target.value === "" ? 0 : Number(e.target.value)})}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-
-//               <div className="md:col-span-2 space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
-//                 <input
-//                   placeholder="WiFi, Projector, Whiteboard..."
-//                   value={createForm.amenitiesText}
-//                   onChange={(e)=>setCreateForm({...createForm, amenitiesText:e.target.value})}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-              
-//               <div className="md:col-span-2 space-y-2">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-//                   Cabin Images
-//                 </label>
-//                 <input
-//                   type="file"
-//                   multiple
-//                   accept="image/*"
-//                   onChange={(e) => {
-//                     if (!e.target.files) return;
-//                     setSelectedFiles(Array.from(e.target.files));
-//                   }}
-//                   className="w-full bg-slate-50 rounded-2xl px-4 py-3 text-sm text-slate-500"
-//                 />
-//               </div>
-
-//               {selectedFiles.length > 0 && (
-//                 <div className="md:col-span-2 grid grid-cols-3 gap-4 mt-2">
-//                   {selectedFiles.map((file, index) => (
-//                     <ImagePreview key={index} file={file} />
-//                   ))}
-//                 </div>
+            
+//             <div className="flex items-center gap-2">
+//               {!isCreatingNew && selectedCabin && (
+//                 <button
+//                   onClick={() => setOpenAvailabilityModal(true)}
+//                   className="inline-flex items-center gap-1.5 px-4 py-2 border border-emerald-500/20 bg-[#161a30]/35 hover:bg-[#161a30]/85 hover:border-emerald-500/35 text-emerald-400 font-bold text-xs rounded-xl active:scale-95 transition-all shadow-sm"
+//                 >
+//                   <Calendar size={13} />
+//                   Today's Schedule
+//                 </button>
 //               )}
-//             </div>
-
-//             <div className="p-8 bg-slate-50/50 flex justify-end gap-3">
-//               <button onClick={() => setCreateOpen(false)} className="px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500">Discard</button>
-//               <button
-//                 onClick={handleCreate}
-//                 className="px-8 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2"
-//               >
-//                 <Save size={16} /> Create Resource
-//               </button>
+//               <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 font-bold text-[10px] uppercase">
+//                 <Edit size={10} /> Direct Editing
+//               </span>
 //             </div>
 //           </div>
-//         </div>
-//       )}
-      
-//       {/* --- EDIT MODAL --- */}
-//       {open && (
-//         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-//           <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-//             <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-//               <div className="flex items-center gap-3">
-//                 <div className="h-10 w-10 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400">
-//                   <Settings2 size={20} />
-//                 </div>
-//                 <div>
-//                   <h2 className="text-xl font-black text-slate-900 tracking-tight">Modify Resource</h2>
-//                   <p className="text-xs text-slate-400 font-bold uppercase mt-0.5 tracking-widest">ID: CMS-0{selectedCabin?.id}</p>
-//                 </div>
-//               </div>
-//               <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={24} /></button>
-//             </div>
 
-//             {/* Main grid with height restriction and scrolling */}
-//             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[65vh] overflow-y-auto">
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cabin Name</label>
+//           {/* Form Grid */}
+//           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+//             <div className="space-y-1.5">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cabin Name *</label>
+//               <div className="relative">
+//                 <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
 //                 <input
 //                   type="text"
 //                   value={form.cabinName}
 //                   onChange={(e) => setForm({ ...form, cabinName: e.target.value })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
+//                   placeholder="e.g. Executive Suite"
+//                   className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl pl-12 pr-5 py-3.5 transition-all outline-none font-bold text-white text-sm placeholder:text-slate-600"
 //                 />
 //               </div>
+//             </div>
 
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location</label>
+//             <div className="space-y-1.5">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location / Zone *</label>
+//               <div className="relative">
+//                 <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
 //                 <input
 //                   type="text"
 //                   value={form.location}
 //                   onChange={(e) => setForm({ ...form, location: e.target.value })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
+//                   placeholder="e.g. North Wing"
+//                   className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl pl-12 pr-5 py-3.5 transition-all outline-none font-bold text-white text-sm placeholder:text-slate-600"
 //                 />
 //               </div>
+//             </div>
 
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor Number</label>
+//             <div className="space-y-1.5">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor Number</label>
+//               <div className="relative">
+//                 <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
 //                 <input
 //                   type="number"
 //                   value={form.floor === 0 ? "" : form.floor}
 //                   onChange={(e) => setForm({ ...form, floor: e.target.value === "" ? 0 : Number(e.target.value) })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
+//                   className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl pl-12 pr-5 py-3.5 outline-none font-bold text-white text-sm"
 //                 />
 //               </div>
+//             </div>
 
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Capacity</label>
+//             <div className="space-y-1.5">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Capacity</label>
+//               <div className="relative">
+//                 <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
 //                 <input
 //                   type="number"
 //                   value={form.capacity === 0 ? "" : form.capacity}
 //                   onChange={(e) => setForm({ ...form, capacity: e.target.value === "" ? 0 : Number(e.target.value) })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
+//                   className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl pl-12 pr-5 py-3.5 outline-none font-bold text-white text-sm"
 //                 />
-//               </div>
-
-//               <div className="md:col-span-2 space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
-//                 <input
-//                   type="text"
-//                   value={amenitiesText}
-//                   onChange={(e) => setAmenitiesText(e.target.value)}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
-//                 />
-//               </div>
-
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-//                 <select
-//                   value={form.status}
-//                   onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
-//                 >
-//                   <option value="AVAILABLE">AVAILABLE</option>
-//                   <option value="OCCUPIED">OCCUPIED</option>
-//                   <option value="MAINTENANCE">MAINTENANCE</option>
-//                 </select>
-//               </div>
-
-//               <div className="space-y-1.5">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Visibility</label>
-//                 <select
-//                   value={form.active ? "true" : "false"}
-//                   onChange={(e) => setForm({ ...form, active: e.target.value === "true" })}
-//                   className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
-//                 >
-//                   <option value="true">Active</option>
-//                   <option value="false">Inactive</option>
-//                 </select>
-//               </div>
-
-//               {/* Fixed Layout: Relocated Current Images block into the grid context */}
-//               <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-//                   Current Images
-//                 </label>
-//                 {cabinImages.length === 0 ? (
-//                   <p className="text-xs text-slate-400 italic ml-1">No images uploaded.</p>
-//                 ) : (
-//                   <div className="grid grid-cols-3 gap-4">
-//                     {cabinImages.map((image) => (
-//                       <div key={image.id} className="relative group/img overflow-hidden rounded-xl border border-slate-100">
-//                         <img
-//                           src={`http://localhost:8080${image.imageUrl}`}
-//                           alt="Cabin"
-//                           className="h-28 w-full object-cover"
-//                         />
-//                         {/* Hover Overlay Delete Button */}
-//                         <button
-//                           type="button"
-//                           onClick={() => handleDeleteImage(image.id)}
-//                           className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-rose-600 duration-150 shadow-md"
-//                           title="Delete image"
-//                         >
-//                           <X size={14} />
-//                         </button>
-//                       </div>
-//                     ))}
-//                   </div>
-//                 )}
-//               </div>
-
-//               {/* Added: Upload New Images field context in Edit Modal */}
-//               <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
-//                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-//                   Upload New Images
-//                 </label>
-//                 <input
-//                   type="file"
-//                   multiple
-//                   accept="image/*"
-//                   onChange={(e) => {
-//                     if (!e.target.files) return;
-//                     setSelectedFiles(Array.from(e.target.files));
-//                   }}
-//                   className="w-full bg-slate-50 rounded-2xl px-4 py-3 text-sm text-slate-500"
-//                 />
-//                 {selectedFiles.length > 0 && (
-//                   <div className="grid grid-cols-3 gap-4 mt-2">
-//                     {selectedFiles.map((file, index) => (
-//                       <ImagePreview key={index} file={file} />
-//                     ))}
-//                   </div>
-//                 )}
 //               </div>
 //             </div>
 
-//             {/* Clean Footer Area */}
-//             <div className="p-8 bg-slate-50/50 flex justify-end gap-3 border-t border-slate-100">
-//               <button 
-//                 onClick={() => setOpen(false)} 
-//                 className="px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all"
-//               >
-//                 Discard
-//               </button>
-//               <button
-//                 onClick={handleUpdate}
-//                 className="px-8 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2"
-//               >
-//                 <Save size={16} /> Save Changes
-//               </button>
+//             <div className="md:col-span-2 space-y-1.5">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
+//               <input
+//                 type="text"
+//                 value={amenitiesText}
+//                 onChange={(e) => setAmenitiesText(e.target.value)}
+//                 placeholder="WiFi, Projector, Whiteboard, AC..."
+//                 className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl px-5 py-3.5 outline-none font-bold text-white text-sm placeholder:text-slate-650"
+//               />
+//             </div>
+
+//             {!isCreatingNew && (
+//               <>
+//                 <div className="space-y-1.5">
+//                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operational Status</label>
+//                   <select
+//                     value={form.status}
+//                     onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+//                     className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl px-5 py-3.5 outline-none font-bold text-white text-sm"
+//                   >
+//                     <option value="AVAILABLE">AVAILABLE</option>
+//                     <option value="OCCUPIED">OCCUPIED</option>
+//                     <option value="MAINTENANCE">MAINTENANCE</option>
+//                   </select>
+//                 </div>
+
+//                 <div className="space-y-1.5">
+//                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Visibility</label>
+//                   <select
+//                     value={form.active ? "true" : "false"}
+//                     onChange={(e) => setForm({ ...form, active: e.target.value === "true" })}
+//                     className="w-full bg-[#151a2e] border border-slate-800 focus:border-emerald-500 rounded-2xl px-5 py-3.5 outline-none font-bold text-white text-sm"
+//                   >
+//                     <option value="true">Active (Public)</option>
+//                     <option value="false">Inactive (Hidden)</option>
+//                   </select>
+//                 </div>
+//               </>
+//             )}
+
+//             {/* Images Grid list Row */}
+//             <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-850">
+//               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+//                 Cabin Images
+//               </label>
+              
+//               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+//                 {/* Existing Backend uploaded Images */}
+//                 {cabinImages.map((image) => (
+//                   <div key={image.id} className="relative group/img overflow-hidden rounded-xl border border-slate-800 h-24 bg-slate-950 shadow-sm">
+//                     <img
+//                       src={`${API_BASE_URL}${image.imageUrl}`}
+//                       alt="Cabin"
+//                       className="h-full w-full object-cover transition-transform duration-300 group-hover/img:scale-105"
+//                     />
+//                     <button
+//                       type="button"
+//                       onClick={() => handleDeleteImage(image.id)}
+//                       className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-rose-600 shadow-md"
+//                       title="Delete Image"
+//                     >
+//                       <Trash2 size={12} />
+//                     </button>
+//                   </div>
+//                 ))}
+
+//                 {/* Selected File uploads previews */}
+//                 {selectedFiles.map((file, idx) => (
+//                   <div key={idx} className="relative overflow-hidden rounded-xl border border-slate-800 h-24 bg-slate-950 shadow-sm">
+//                     <ImagePreview file={file} />
+//                     <button
+//                       type="button"
+//                       onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+//                       className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-lg shadow-md hover:bg-rose-600 transition-colors"
+//                       title="Cancel Upload"
+//                     >
+//                       <X size={12} />
+//                     </button>
+//                   </div>
+//                 ))}
+
+//                 {/* Upload Image box label */}
+//                 <label className="flex flex-col items-center justify-center h-24 border border-dashed border-slate-800 hover:border-emerald-500 rounded-xl cursor-pointer bg-[#151a2e] hover:bg-[#1a2139] transition-all group shadow-sm">
+//                   <div className="flex flex-col items-center justify-center text-center p-2">
+//                     <Upload size={18} className="text-slate-500 group-hover:text-emerald-400 transition-colors mb-1" />
+//                     <p className="text-[10px] font-black text-slate-300 leading-none">Upload</p>
+//                     <p className="text-[9px] font-black text-slate-400 uppercase mt-0.5 tracking-tight">Image</p>
+//                   </div>
+//                   <input
+//                     type="file"
+//                     multiple
+//                     accept="image/*"
+//                     onChange={(e) => {
+//                       if (!e.target.files) return;
+//                       setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+//                     }}
+//                     className="hidden"
+//                   />
+//                 </label>
+//               </div>
 //             </div>
 //           </div>
+
+//           {/* Form Actions footer bar */}
+//           <div className="pt-6 border-t border-slate-850 flex justify-end items-center gap-3 bg-[#111425]/10">
+//             <button 
+//               onClick={() => {
+//                 if (isCreatingNew) {
+//                   if (cabins.length > 0) handleSelectCabin(cabins[0]);
+//                 } else {
+//                   if (selectedCabin) handleSelectCabin(selectedCabin);
+//                 }
+//               }} 
+//               disabled={submitting}
+//               className="px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-400 hover:text-white transition-all disabled:opacity-50"
+//             >
+//               Discard Changes
+//             </button>
+            
+//             <button
+//               onClick={isCreatingNew ? handleCreate : handleUpdate}
+//               disabled={submitting}
+//               className="px-7 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/10 transition-all flex items-center gap-2 disabled:bg-emerald-400 disabled:shadow-none"
+//             >
+//               {submitting ? (
+//                 <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+//               ) : (
+//                 <Save size={14} />
+//               )}
+//               {submitting ? "Processing..." : isCreatingNew ? "Create Cabin" : "Update Cabin"}
+//             </button>
+//           </div>
 //         </div>
+//       </div>
+
+//       {/* Linked Today's Schedule Modal Overlay */}
+//       {selectedCabin && (
+//         <CabinAvailabilityModal
+//           open={openAvailabilityModal}
+//           cabinId={selectedCabin.id}
+//           onClose={() => setOpenAvailabilityModal(false)}
+//         />
 //       )}
 //     </div>
 //   );
@@ -603,7 +566,9 @@ import {
   Plus,
   Trash2,
   Upload,
-  Image as ImageIcon
+  Calendar,
+  Building2,
+  ChevronRight
 } from "lucide-react";
 
 import {
@@ -616,6 +581,7 @@ import {
 } from "../../services/api";
 
 import { Cabin, UpdateCabinRequest } from "../../types";
+import CabinAvailabilityModal from "../employee/CabinAvailabilityModal";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -636,13 +602,11 @@ function ImagePreview({ file }: { file: File }) {
   if (!previewUrl) return null;
 
   return (
-    <div className="relative group border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-      <img
-        src={previewUrl}
-        alt="Preview"
-        className="h-28 w-full object-cover"
-      />
-    </div>
+    <img
+      src={previewUrl}
+      alt="Preview"
+      className="h-full w-full object-cover rounded-xl"
+    />
   );
 }
 
@@ -652,20 +616,13 @@ export default function CabinManagement() {
   const [cabins, setCabins] = useState<Cabin[]>([]);
   const [selectedCabin, setSelectedCabin] = useState<Cabin | null>(null);
   const [cabinImages, setCabinImages] = useState<{ id: number; imageUrl: string }[]>([]);
-  
-  // Create Modal States
-  const [createOpen, setCreateOpen] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [createForm, setCreateForm] = useState({
-    cabinName: "",
-    floor: 1,
-    capacity: 1,
-    location: "",
-    amenitiesText: "",
-  });
+  
+  // State to track if detail panel is in "Create New" draft state
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [openAvailabilityModal, setOpenAvailabilityModal] = useState(false);
 
-  // Edit Modal States
-  const [open, setOpen] = useState(false);
+  // Detail Panel Fields
   const [amenitiesText, setAmenitiesText] = useState("");
   const [form, setForm] = useState<UpdateCabinRequest>({
     cabinName: "",
@@ -677,11 +634,22 @@ export default function CabinManagement() {
     active: true,
   });
 
-  const loadCabins = async () => {
+  const loadCabins = async (selectFirstId?: number | null) => {
     try {
       setLoading(true);
       const response = await getCabins();
-      setCabins(response.data.data);
+      const cabinsList = response.data.data;
+      setCabins(cabinsList);
+
+      // Auto select first cabin or previously updated cabin
+      if (cabinsList.length > 0) {
+        if (selectFirstId) {
+          const match = cabinsList.find((c: Cabin) => c.id === selectFirstId);
+          if (match) handleSelectCabin(match);
+        } else {
+          handleSelectCabin(cabinsList[0]);
+        }
+      }
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Unable to load cabins.");
     } finally {
@@ -692,6 +660,45 @@ export default function CabinManagement() {
   useEffect(() => {
     loadCabins();
   }, []);
+
+  const handleSelectCabin = async (cabin: Cabin) => {
+    setIsCreatingNew(false);
+    setSelectedCabin(cabin);
+    setAmenitiesText(cabin.amenities.join(", "));
+    setSelectedFiles([]);
+    setForm({
+      cabinName: cabin.cabinName,
+      floor: cabin.floor,
+      capacity: cabin.capacity,
+      location: cabin.location,
+      amenities: cabin.amenities,
+      status: cabin.status,
+      active: cabin.active,
+    });
+    try {
+      const response = await getCabinImages(cabin.id);
+      setCabinImages(response.data.data);
+    } catch (error) {
+      setCabinImages([]);
+    }
+  };
+
+  const handleStartCreate = () => {
+    setIsCreatingNew(true);
+    setSelectedCabin(null);
+    setCabinImages([]);
+    setSelectedFiles([]);
+    setAmenitiesText("");
+    setForm({
+      cabinName: "",
+      floor: 1,
+      capacity: 1,
+      location: "",
+      amenities: [],
+      status: "AVAILABLE",
+      active: true,
+    });
+  };
 
   const validateForm = (name: string, location: string) => {
     if (!name.trim()) {
@@ -705,21 +712,23 @@ export default function CabinManagement() {
     return true;
   };
 
-  // --- Create Logic ---
+  // --- Create logic trigger ---
   const handleCreate = async () => {
-    if (!validateForm(createForm.cabinName, createForm.location)) return;
+    if (!validateForm(form.cabinName, form.location)) return;
 
     try {
       setSubmitting(true);
+      const amenitiesArr = amenitiesText
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
       const response = await createCabin({
-        cabinName: createForm.cabinName,
-        floor: createForm.floor,
-        capacity: createForm.capacity,
-        location: createForm.location,
-        amenities: createForm.amenitiesText
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean),
+        cabinName: form.cabinName,
+        floor: form.floor,
+        capacity: form.capacity,
+        location: form.location,
+        amenities: amenitiesArr,
       });
 
       const cabinId = response.data.data.id;
@@ -729,17 +738,8 @@ export default function CabinManagement() {
       }
 
       toast.success("Cabin Created Successfully");
-      setCreateOpen(false);
-
-      setCreateForm({
-        cabinName: "",
-        floor: 1,
-        capacity: 1,
-        location: "",
-        amenitiesText: "",
-      });
       setSelectedFiles([]);
-      await loadCabins();
+      await loadCabins(cabinId);
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Unable to create cabin.");
     } finally {
@@ -747,29 +747,7 @@ export default function CabinManagement() {
     }
   };
 
-  // --- Edit Logic ---
-  const handleEdit = async (cabin: Cabin) => {
-    setSelectedCabin(cabin);
-    setAmenitiesText(cabin.amenities.join(", "));
-    setSelectedFiles([]);
-    setForm({
-      cabinName: cabin.cabinName,
-      floor: cabin.floor,
-      capacity: cabin.capacity,
-      location: cabin.location,
-      amenities: cabin.amenities,
-      status: cabin.status,
-      active: cabin.active,
-    });
-    setOpen(true);
-    try {
-      const response = await getCabinImages(cabin.id);
-      setCabinImages(response.data.data);
-    } catch (error) {
-      toast.error("Unable to load cabin images.");
-    }
-  };
-
+  // --- Update logic trigger ---
   const handleUpdate = async () => {
     if (!selectedCabin) return;
     if (!validateForm(form.cabinName, form.location)) return;
@@ -785,9 +763,8 @@ export default function CabinManagement() {
       }
 
       toast.success("Cabin Updated Successfully");
-      setOpen(false);
       setSelectedFiles([]);
-      await loadCabins();
+      await loadCabins(selectedCabin.id);
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Update failed.");
     } finally {
@@ -803,13 +780,12 @@ export default function CabinManagement() {
       
       const response = await getCabinImages(selectedCabin.id);
       setCabinImages(response.data.data);
-      await loadCabins();
     } catch (err: any) {
       toast.error(err?.response?.data?.message ?? "Failed to delete image.");
     }
   };
 
-  if (loading) {
+  if (loading && cabins.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <div className="h-10 w-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
@@ -819,386 +795,254 @@ export default function CabinManagement() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Top Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-2">Resource Management</p>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Cabin Inventory</h1>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 text-slate-800">
+      
+      {/* LEFT COLUMN: Cabins Selector Master List */}
+      <div className="lg:col-span-4 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-emerald-500 font-bold text-xs uppercase tracking-widest mb-1.5">Resource Management</p>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">Cabin Inventory</h1>
+          </div>
+          <button
+            onClick={handleStartCreate}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all shadow-md shadow-emerald-500/10 active:scale-95 flex-shrink-0"
+            title="Register New Cabin"
+          >
+            <Plus size={14} /> New
+          </button>
         </div>
-        
-        <div className="flex gap-3 w-full md:w-auto">
-          <button
-            onClick={() => {
-              setCreateOpen(true);
-              setSelectedFiles([]);
-            }}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all active:scale-95"
-          >
-            <Plus size={18} />
-            Create Cabin
-          </button>
-          <button
-            onClick={loadCabins}
-            className="flex items-center justify-center gap-2 px-6 py-3.5 bg-white border border-slate-200 rounded-2xl text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all active:scale-95"
-          >
-            <RefreshCcw size={18} />
-            Refresh
-          </button>
+        <p className="text-xs text-slate-500 leading-relaxed max-w-sm">
+          Manage all cabins, their details, availability and status.
+        </p>
+
+        {/* Scrollable list card stack */}
+        <div className="space-y-3 max-h-[68vh] overflow-y-auto pr-1">
+          {cabins.map((cabin) => {
+            const isSelected = selectedCabin?.id === cabin.id;
+            return (
+              <div
+                key={cabin.id}
+                onClick={() => handleSelectCabin(cabin)}
+                className={`p-4 rounded-[20px] border cursor-pointer flex items-center justify-between transition-all duration-300 group ${
+                  isSelected
+                    ? "bg-[#f1f5f9] border-emerald-500/40 shadow-md shadow-emerald-500/5"
+                    : "bg-white border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="h-12 w-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
+                    {cabin.images && cabin.images.length > 0 ? (
+                      <img
+                        src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
+                        alt={cabin.cabinName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center text-slate-400">
+                        <Building2 size={18} />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 text-sm truncate">{cabin.cabinName}</div>
+                    <div className="text-[10px] text-slate-500 font-bold uppercase mt-0.5 tracking-tight">Floor {cabin.floor}</div>
+                  </div>
+                </div>
+
+                {/* Status Indicator */}
+                <span className="inline-flex items-center text-[9px] font-black uppercase tracking-wider">
+                  <span className={`h-1.5 w-1.5 rounded-full mr-1.5 ${
+                    cabin.status === "AVAILABLE" ? "bg-emerald-500 animate-pulse" :
+                    cabin.status === "OCCUPIED" ? "bg-rose-500" : "bg-amber-400"
+                  }`} />
+                  <span className={
+                    cabin.status === "AVAILABLE" ? "text-emerald-600" :
+                    cabin.status === "OCCUPIED" ? "text-rose-500" : "text-amber-500"
+                  }>
+                    {cabin.status}
+                  </span>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Main Table / Empty State conditional display */}
-      {cabins.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-12 bg-slate-50 border border-dashed border-slate-200 rounded-[32px] text-center space-y-4">
-          <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center shadow-sm text-slate-400">
-            <Layers size={32} />
-          </div>
-          <div>
-            <h3 className="text-lg font-black text-slate-900">No Cabins Found</h3>
-            <p className="text-sm text-slate-500 max-w-sm mx-auto mt-1">Get started by creating your first cabin resource to manage capacity, configurations, and assets.</p>
-          </div>
-          <button
-            onClick={() => setCreateOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10 hover:bg-emerald-600 transition-all"
-          >
-            <Plus size={16} /> Create Cabin
-          </button>
-        </div>
-      ) : (
-        <div className="overflow-x-auto pb-4">
-          <table className="modern-table">
-            <thead>
-              <tr>
-                <th>Cabin Details</th>
-                <th>Specifications</th>
-                <th>Status</th>
-                <th>Visibility</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {cabins.map((cabin) => (
-                <tr key={cabin.id} className="group">
-                  <td className="min-w-[200px]">
-                    <div className="flex items-center gap-4">
-                      <div className="h-14 w-14 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-                        {cabin.images && cabin.images.length > 0 ? (
-                          <img
-                            src={`${API_BASE_URL}${cabin.images[0].imageUrl}`}
-                            alt={cabin.cabinName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-full w-full flex items-center justify-center text-slate-400">
-                            <Layers size={20} />
-                          </div>
-                        )}
-                      </div>
-                      <div>
-                        <div className="font-black text-slate-900">{cabin.cabinName}</div>
-                        <div className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-tight">
-                           <MapPin size={10} className="inline mr-1" />{cabin.location}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                        <Users size={12} className="text-slate-400" /> {cabin.capacity} Seats
-                      </div>
-                      <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">Floor {cabin.floor}</div>
-                    </div>
-                  </td>
-                  <td>
-                    <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-tight border ${
-                      cabin.status === "AVAILABLE" ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-amber-50 text-amber-700 border-amber-100"
-                    }`}>
-                      {cabin.status}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      {cabin.active ? <CheckCircle2 size={16} className="text-emerald-500" /> : <AlertCircle size={16} className="text-slate-300" />}
-                      <span className={`text-[10px] font-bold uppercase ${cabin.active ? "text-slate-700" : "text-slate-400"}`}>
-                        {cabin.active ? "Public" : "Hidden"}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <button
-                      onClick={() => handleEdit(cabin)}
-                      className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs hover:bg-slate-800 transition-all active:scale-95"
-                    >
-                      <Edit size={14} /> Edit
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* --- CREATE MODAL --- */}
-      {createOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-white">
-                  <Plus size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">New Resource</h2>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Register a new cabin</p>
-                </div>
-              </div>
-              <button onClick={() => setCreateOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={24} /></button>
+      {/* RIGHT COLUMN: Active Details Form / Editor */}
+      <div className="lg:col-span-8">
+        <div className="bg-white/80 backdrop-blur-xl border border-slate-200/50 rounded-[32px] p-8 space-y-6 shadow-xl relative overflow-hidden">
+          
+          {/* Header Row */}
+          <div className="flex items-center justify-between pb-5 border-b border-slate-200">
+            <div>
+              <p className="text-[10px] font-black text-slate-455 uppercase tracking-widest">
+                {isCreatingNew ? "Configuration Panel" : `Cabin Settings • ID: CMS-0${selectedCabin?.id}`}
+              </p>
+              <h2 className="text-xl font-black text-slate-900 tracking-tight mt-1">
+                {isCreatingNew ? "Add New Cabin Resource" : "Edit Cabin Configuration"}
+              </h2>
             </div>
-
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[65vh] overflow-y-auto">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cabin Name *</label>
-                <input
-                  placeholder="e.g. Executive Suite"
-                  value={createForm.cabinName}
-                  onChange={(e)=>setCreateForm({...createForm, cabinName:e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location / Zone *</label>
-                <input
-                  placeholder="e.g. North Wing"
-                  value={createForm.location}
-                  onChange={(e)=>setCreateForm({...createForm, location:e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor Number</label>
-                <input
-                  type="number"
-                  value={createForm.floor === 0 ? "" : createForm.floor}
-                  onChange={(e)=>setCreateForm({...createForm, floor: e.target.value === "" ? 0 : Number(e.target.value)})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Capacity</label>
-                <input
-                  type="number"
-                  value={createForm.capacity === 0 ? "" : createForm.capacity}
-                  onChange={(e)=>setCreateForm({...createForm, capacity: e.target.value === "" ? 0 : Number(e.target.value)})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-                />
-              </div>
-
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
-                <input
-                  placeholder="WiFi, Projector, Whiteboard..."
-                  value={createForm.amenitiesText}
-                  onChange={(e)=>setCreateForm({...createForm, amenitiesText:e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
-                />
-              </div>
-              
-              {/* Refined: Custom File upload label */}
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Cabin Images
-                </label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl cursor-pointer bg-slate-50 hover:bg-emerald-50/20 transition-all group">
-                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
-                    <Upload size={22} className="text-slate-400 group-hover:text-emerald-500 transition-colors mb-2" />
-                    <p className="text-xs font-bold text-slate-600">Select files to upload</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Supports PNG, JPG, JPEG</p>
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (!e.target.files) return;
-                      setSelectedFiles(Array.from(e.target.files));
-                    }}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              {selectedFiles.length > 0 && (
-                <div className="md:col-span-2 grid grid-cols-3 gap-4 mt-2">
-                  {selectedFiles.map((file, index) => (
-                    <ImagePreview key={index} file={file} />
-                  ))}
-                </div>
+            
+            <div className="flex items-center gap-2">
+              {!isCreatingNew && selectedCabin && (
+                <button
+                  onClick={() => setOpenAvailabilityModal(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 border border-emerald-500/20 bg-slate-50 hover:bg-slate-100 hover:border-emerald-500/35 text-emerald-600 font-bold text-xs rounded-xl active:scale-95 transition-all shadow-sm"
+                >
+                  <Calendar size={13} />
+                  Today's Schedule
+                </button>
               )}
-            </div>
-
-            <div className="p-8 bg-slate-50/50 flex justify-end gap-3">
-              <button 
-                onClick={() => setCreateOpen(false)} 
-                disabled={submitting}
-                className="px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 disabled:opacity-50"
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={submitting}
-                className="px-8 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2 disabled:bg-emerald-400 disabled:shadow-none"
-              >
-                {submitting ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Save size={16} />
-                )}
-                {submitting ? "Creating..." : "Create Resource"}
-              </button>
+              <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-slate-100 border border-slate-200 rounded-xl text-slate-650 font-bold text-[10px] uppercase">
+                <Edit size={10} /> Direct Editing
+              </span>
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* --- EDIT MODAL --- */}
-      {open && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
-          <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-slate-900 rounded-2xl flex items-center justify-center text-emerald-400">
-                  <Settings2 size={20} />
-                </div>
-                <div>
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Modify Resource</h2>
-                  <p className="text-xs text-slate-400 font-bold uppercase mt-0.5 tracking-widest">ID: CMS-0{selectedCabin?.id}</p>
-                </div>
-              </div>
-              <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-900"><X size={24} /></button>
-            </div>
 
-            <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[65vh] overflow-y-auto">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Cabin Name *</label>
+          {/* Form Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Cabin Name *</label>
+              <div className="relative">
+                <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={form.cabinName}
                   onChange={(e) => setForm({ ...form, cabinName: e.target.value })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
+                  placeholder="e.g. Executive Suite"
+                  className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl pl-12 pr-5 py-3.5 transition-all outline-none font-bold text-slate-800 text-sm placeholder:text-slate-400"
                 />
               </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Location *</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Location / Zone *</label>
+              <div className="relative">
+                <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 transition-all outline-none font-bold text-slate-700"
+                  placeholder="e.g. North Wing"
+                  className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl pl-12 pr-5 py-3.5 transition-all outline-none font-bold text-slate-800 text-sm placeholder:text-slate-400"
                 />
               </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Floor Number</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Floor Number</label>
+              <div className="relative">
+                <Layers size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="number"
                   value={form.floor === 0 ? "" : form.floor}
                   onChange={(e) => setForm({ ...form, floor: e.target.value === "" ? 0 : Number(e.target.value) })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
+                  className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl pl-12 pr-5 py-3.5 outline-none font-bold text-slate-800 text-sm"
                 />
               </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Capacity</label>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Total Capacity</label>
+              <div className="relative">
+                <Users size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="number"
                   value={form.capacity === 0 ? "" : form.capacity}
                   onChange={(e) => setForm({ ...form, capacity: e.target.value === "" ? 0 : Number(e.target.value) })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
+                  className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl pl-12 pr-5 py-3.5 outline-none font-bold text-slate-800 text-sm"
                 />
               </div>
+            </div>
 
-              <div className="md:col-span-2 space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
-                <input
-                  type="text"
-                  value={amenitiesText}
-                  onChange={(e) => setAmenitiesText(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700"
-                />
-              </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Amenities (Comma separated)</label>
+              <input
+                type="text"
+                value={amenitiesText}
+                onChange={(e) => setAmenitiesText(e.target.value)}
+                placeholder="WiFi, Projector, Whiteboard, AC..."
+                className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-800 text-sm placeholder:text-slate-400"
+              />
+            </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Status</label>
-                <select
-                  value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value as any })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700 text-sm"
-                >
-                  <option value="AVAILABLE">AVAILABLE</option>
-                  <option value="OCCUPIED">OCCUPIED</option>
-                  <option value="MAINTENANCE">MAINTENANCE</option>
-                </select>
-              </div>
+            {!isCreatingNew && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Operational Status</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as any })}
+                    className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-800 text-sm"
+                  >
+                    <option value="AVAILABLE">AVAILABLE</option>
+                    <option value="OCCUPIED">OCCUPIED</option>
+                    <option value="MAINTENANCE">MAINTENANCE</option>
+                  </select>
+                </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Visibility</label>
-                <select
-                  value={form.active ? "true" : "false"}
-                  onChange={(e) => setForm({ ...form, active: e.target.value === "true" })}
-                  className="w-full bg-slate-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-700 text-sm"
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Visibility</label>
+                  <select
+                    value={form.active ? "true" : "false"}
+                    onChange={(e) => setForm({ ...form, active: e.target.value === "true" })}
+                    className="w-full bg-[#f8fafc] border border-slate-200 focus:border-emerald-500 rounded-2xl px-5 py-3.5 outline-none font-bold text-slate-800 text-sm"
+                  >
+                    <option value="true">Active (Public)</option>
+                    <option value="false">Inactive (Hidden)</option>
+                  </select>
+                </div>
+              </>
+            )}
 
-              <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
-                  <ImageIcon size={12} className="text-slate-400" /> Current Images
-                </label>
-                {cabinImages.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic ml-1">No images uploaded.</p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-4">
-                    {cabinImages.map((image) => (
-                      <div key={image.id} className="relative group/img overflow-hidden rounded-xl border border-slate-100">
-                        <img
-                          src={`${API_BASE_URL}${image.imageUrl}`}
-                          alt="Cabin"
-                          className="h-28 w-full object-cover"
-                        />
-                        {/* Improved Action: Trash Icon button overlay */}
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteImage(image.id)}
-                          className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-rose-600 duration-150 shadow-md"
-                          title="Delete image"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    ))}
+            {/* Images Grid list Row */}
+            <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-205">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                Cabin Images
+              </label>
+              
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {/* Existing Backend uploaded Images */}
+                {cabinImages.map((image) => (
+                  <div key={image.id} className="relative group/img overflow-hidden rounded-xl border border-slate-200 h-24 bg-slate-50 shadow-sm">
+                    <img
+                      src={`${API_BASE_URL}${image.imageUrl}`}
+                      alt="Cabin"
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover/img:scale-105"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteImage(image.id)}
+                      className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-lg opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-rose-600 shadow-md"
+                      title="Delete Image"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
-                )}
-              </div>
+                ))}
 
-              <div className="md:col-span-2 space-y-2 pt-2 border-t border-slate-100">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                  Upload New Images
-                </label>
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-200 hover:border-emerald-400 rounded-2xl cursor-pointer bg-slate-50 hover:bg-emerald-50/20 transition-all group">
-                  <div className="flex flex-col items-center justify-center pt-4 pb-4">
-                    <Upload size={22} className="text-slate-400 group-hover:text-emerald-500 transition-colors mb-2" />
-                    <p className="text-xs font-bold text-slate-600">Select files to upload</p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Supports PNG, JPG, JPEG</p>
+                {/* Selected File uploads previews */}
+                {selectedFiles.map((file, idx) => (
+                  <div key={idx} className="relative overflow-hidden rounded-xl border border-slate-200 h-24 bg-slate-50 shadow-sm">
+                    <ImagePreview file={file} />
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-lg shadow-md hover:bg-rose-600 transition-colors"
+                      title="Cancel Upload"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+
+                {/* Upload Image box label */}
+                <label className="flex flex-col items-center justify-center h-24 border border-dashed border-slate-200 hover:border-emerald-500 rounded-xl cursor-pointer bg-slate-50/40 hover:bg-emerald-50/10 transition-all group shadow-sm">
+                  <div className="flex flex-col items-center justify-center text-center p-2">
+                    <Upload size={18} className="text-slate-400 group-hover:text-emerald-500 transition-colors mb-1" />
+                    <p className="text-[10px] font-black text-slate-600 leading-none">Upload</p>
+                    <p className="text-[9px] font-black text-slate-500 uppercase mt-0.5 tracking-tight">Image</p>
                   </div>
                   <input
                     type="file"
@@ -1206,44 +1050,54 @@ export default function CabinManagement() {
                     accept="image/*"
                     onChange={(e) => {
                       if (!e.target.files) return;
-                      setSelectedFiles(Array.from(e.target.files));
+                      setSelectedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                     }}
                     className="hidden"
                   />
                 </label>
-                {selectedFiles.length > 0 && (
-                  <div className="grid grid-cols-3 gap-4 mt-2">
-                    {selectedFiles.map((file, index) => (
-                      <ImagePreview key={index} file={file} />
-                    ))}
-                  </div>
-                )}
               </div>
             </div>
+          </div>
 
-            <div className="p-8 bg-slate-50/50 flex justify-end gap-3 border-t border-slate-100">
-              <button 
-                onClick={() => setOpen(false)} 
-                disabled={submitting}
-                className="px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:bg-slate-100 transition-all disabled:opacity-50"
-              >
-                Discard
-              </button>
-              <button
-                onClick={handleUpdate}
-                disabled={submitting}
-                className="px-8 py-3.5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 hover:bg-emerald-600 transition-all flex items-center gap-2 disabled:bg-emerald-400 disabled:shadow-none"
-              >
-                {submitting ? (
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <Save size={16} />
-                )}
-                {submitting ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+          {/* Form Actions footer bar */}
+          <div className="pt-6 border-t border-slate-200 flex justify-end items-center gap-3 bg-slate-50/10">
+            <button 
+              onClick={() => {
+                if (isCreatingNew) {
+                  if (cabins.length > 0) handleSelectCabin(cabins[0]);
+                } else {
+                  if (selectedCabin) handleSelectCabin(selectedCabin);
+                }
+              }} 
+              disabled={submitting}
+              className="px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-slate-500 hover:text-slate-800 transition-all disabled:opacity-50"
+            >
+              Discard Changes
+            </button>
+            
+            <button
+              onClick={isCreatingNew ? handleCreate : handleUpdate}
+              disabled={submitting}
+              className="px-7 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/10 transition-all flex items-center gap-2 disabled:bg-emerald-400 disabled:shadow-none"
+            >
+              {submitting ? (
+                <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Save size={14} />
+              )}
+              {submitting ? "Processing..." : isCreatingNew ? "Create Cabin" : "Update Cabin"}
+            </button>
           </div>
         </div>
+      </div>
+
+      {/* Linked Today's Schedule Modal Overlay */}
+      {selectedCabin && (
+        <CabinAvailabilityModal
+          open={openAvailabilityModal}
+          cabinId={selectedCabin.id}
+          onClose={() => setOpenAvailabilityModal(false)}
+        />
       )}
     </div>
   );

@@ -148,3 +148,19 @@ export interface ApiResponse<T> {
   message: string;
   data: T;
 }
+
+export type SlotType = "AVAILABLE" | "BOOKED";
+
+export interface TimeSlotResponse {
+  startTime: string;
+  endTime: string;
+  slotType: SlotType;
+}
+
+export interface BookingAvailabilityResponse {
+  cabinId: number;
+  cabinName: string;
+  currentlyOccupied: boolean;
+  occupiedUntil: string | null;
+  todaySchedule: TimeSlotResponse[];
+}
