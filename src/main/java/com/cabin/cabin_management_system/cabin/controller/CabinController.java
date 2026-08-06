@@ -8,6 +8,8 @@ import com.cabin.cabin_management_system.common.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.cabin.cabin_management_system.booking.dto.availability.BookingAvailabilityResponse;
+import com.cabin.cabin_management_system.booking.service.CabinAvailabilityService;
 
 import java.util.List;
 
@@ -16,9 +18,14 @@ import java.util.List;
 public class CabinController {
 
     private final CabinService cabinService;
+    private final CabinAvailabilityService cabinAvailabilityService;
 
-    public CabinController(CabinService cabinService) {
+    public CabinController(
+            CabinService cabinService,
+            CabinAvailabilityService cabinAvailabilityService
+    ) {
         this.cabinService = cabinService;
+        this.cabinAvailabilityService = cabinAvailabilityService;
     }
 
     @PostMapping
@@ -129,6 +136,22 @@ public class CabinController {
                 new ApiResponse<>(
                         true,
                         "Available cabins fetched successfully.",
+                        response
+                )
+        );
+    }
+
+    @GetMapping("/{cabinId}/availability")
+    public ResponseEntity<ApiResponse<BookingAvailabilityResponse>>
+    getCabinAvailability(@PathVariable Long cabinId) {
+
+        BookingAvailabilityResponse response =
+                cabinAvailabilityService.getTodayAvailability(cabinId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        true,
+                        "Cabin availability fetched successfully.",
                         response
                 )
         );

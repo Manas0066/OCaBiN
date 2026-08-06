@@ -9,6 +9,7 @@ import com.cabin.cabin_management_system.cabin.entity.Cabin;
 import com.cabin.cabin_management_system.cabin.repository.CabinRepository;
 import com.cabin.cabin_management_system.common.enums.BookingStatus;
 import com.cabin.cabin_management_system.common.enums.CabinStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,11 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final CabinRepository cabinRepository;
+    @Value("${office.start.time}")
+    private LocalTime officeStartTime;
+
+    @Value("${office.end.time}")
+    private LocalTime officeEndTime;
 
     public BookingService(BookingRepository bookingRepository,
                           CabinRepository cabinRepository) {
@@ -169,6 +175,28 @@ public class BookingService {
         if (!request.getEndTime().isAfter(request.getStartTime())) {
             throw new IllegalArgumentException(
                     "End time must be after start time.");
+        }
+
+        if (request.getStartTime().isBefore(officeStartTime)
+                || request.getEndTime().isAfter(officeEndTime)) {
+
+            throw new IllegalArgumentException(
+                    "Booking time must be within office hours.");
+        }
+
+        if (request.getBookingDate().isEqual(LocalDate.now())) {
+
+            LocalDateTime bookingStart =
+                    LocalDateTime.of(
+                            request.getBookingDate(),
+                            request.getStartTime()
+                    );
+
+            if (!bookingStart.isAfter(LocalDateTime.now())) {
+                throw new IllegalArgumentException(
+                        "Booking must be scheduled for a future time."
+                );
+            }
         }
     }
 

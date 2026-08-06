@@ -21,4 +21,10 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findTop5ByOrderByCreatedAtDesc();
 
     List<Booking> findByBookingDate(LocalDate bookingDate);
+
+    List<Booking> findByCabinIdAndBookingDateAndStatusOrderByStartTimeAsc(
+            Long cabinId,
+            LocalDate bookingDate,
+            BookingStatus status
+    );
 }
